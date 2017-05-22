@@ -1,4 +1,4 @@
-package re.usto.maluhia.umqtt;
+package re.usto.umqtt;
 
 import android.support.annotation.IntDef;
 import android.support.annotation.IntRange;

@@ -1,4 +1,4 @@
-package re.usto.maluhia.umqtt;
+package re.usto.umqtt;
 
 /**
  * Malformed packets (missing information).

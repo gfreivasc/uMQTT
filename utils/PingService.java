@@ -1,8 +1,8 @@
-package re.usto.maluhia.umqtt.utils;
+package re.usto.umqtt.utils;
 
 import com.firebase.jobdispatcher.JobParameters;
 import com.firebase.jobdispatcher.JobService;
-import com.gabrielfv.maluhia.mqtt.uMQTTController;
+import re.usto.umqtt.uMQTTController;
 
 /**
  * @author gabriel

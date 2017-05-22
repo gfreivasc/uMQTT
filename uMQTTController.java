@@ -1,4 +1,4 @@
-package re.usto.maluhia.umqtt;
+package re.usto.umqtt;
 
 import android.content.Context;
 import android.content.Intent;
@@ -12,8 +12,6 @@ import com.firebase.jobdispatcher.Job;
 import com.firebase.jobdispatcher.Lifetime;
 import com.firebase.jobdispatcher.RetryStrategy;
 import com.firebase.jobdispatcher.Trigger;
-import com.gabrielfv.maluhia.mqtt.utils.NetworkJobService;
-import com.gabrielfv.maluhia.mqtt.utils.PingService;
 
 import java.io.InputStream;
 import java.net.Socket;
@@ -21,6 +19,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
+import re.usto.umqtt.utils.NetworkJobService;
+import re.usto.umqtt.utils.PingService;
 import timber.log.Timber;
 
 /**

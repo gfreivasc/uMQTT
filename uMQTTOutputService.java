@@ -1,4 +1,4 @@
-package re.usto.maluhia.umqtt;
+package re.usto.umqtt;
 
 import android.app.IntentService;
 import android.content.Intent;
