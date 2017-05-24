@@ -30,10 +30,16 @@ public class uMQTTOutputService extends IntentService {
 
         switch (intent.getAction()){
             case uMQTTController.ACTION_OPEN_MQTT:
-                openSocket();
+                if (!intent.hasExtra(uMQTTController.EXTRA_SERVER_ADDRESS)
+                        || !intent.hasExtra(uMQTTController.EXTRA_SERVER_PORT))
+                    throw new UnsupportedOperationException("Connection information missing");
+                openSocket(intent.getStringExtra(uMQTTController.EXTRA_SERVER_ADDRESS),
+                        intent.getIntExtra(uMQTTController.EXTRA_SERVER_PORT, 1883));
                 break;
             case uMQTTController.ACTION_CONNECT:
-                connect();
+                if (!intent.hasExtra(uMQTTController.EXTRA_CLIENT_ID))
+                    throw new UnsupportedOperationException("Missing client ID");
+                connect(intent.getStringExtra(uMQTTController.EXTRA_CLIENT_ID));
                 break;
             case uMQTTController.ACTION_SUBSCRIBE:
                 if ((!intent.hasExtra(uMQTTController.EXTRA_TOPIC)
@@ -79,10 +85,10 @@ public class uMQTTOutputService extends IntentService {
         }
     }
 
-    private void openSocket() {
+    private void openSocket(String serverAddress, int port) {
         Socket socket;
         try {
-            socket = new Socket("mqttbroker.ucloud.usto.re", 1883);
+            socket = new Socket(serverAddress, port);
             mController.setSocket(socket);
             mController.startInputListener(socket.getInputStream());
         }
@@ -124,7 +130,7 @@ public class uMQTTOutputService extends IntentService {
         }
     }
 
-    private void connect() {
+    private void connect(String clientId) {
         uMQTTFrame frame;
         try {
             try {

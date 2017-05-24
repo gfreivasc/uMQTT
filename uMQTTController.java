@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Bundle;
 
 import com.firebase.jobdispatcher.Constraint;
 import com.firebase.jobdispatcher.FirebaseJobDispatcher;
@@ -43,6 +44,11 @@ public class uMQTTController {
     private ArrayList<uMQTTSubscription> mSubscriptionsAwaitingResponse;
     private ArrayList<uMQTTSubscription> mUnsentSubscriptions;
     private boolean mConnectedToBroker = false;
+    private String mClientId;
+    private String mServerAddress;
+    private int mServerPort;
+
+
     public static abstract class SocketStatusTask implements Runnable {
 
         private boolean connected = false;
@@ -83,6 +89,9 @@ public class uMQTTController {
     static final String ACTION_FORWARD_PUBLISH =
             "re.usto.maluhia.FORWARD_PUBLISH";
 
+    static final String EXTRA_CLIENT_ID = "extraClientId";
+    static final String EXTRA_SERVER_ADDRESS = "extraServerAddres";
+    static final String EXTRA_SERVER_PORT = "extraServerPort";
     static final String EXTRA_TOPIC = "extraTopic";
     static final String EXTRA_TOPICS = "extraTopics";
     static final String EXTRA_TOPIC_QOS = "extraTopicQoS";
@@ -92,11 +101,14 @@ public class uMQTTController {
 
     static final int DEFAULT_KEEP_ALIVE = 180;
 
-    private uMQTTController(Context context) {
+    private uMQTTController(Context context, String client, String serverAddress, int port) {
         mApplicationContext = context.getApplicationContext();
         mConnectivityManager = (ConnectivityManager)
                 mApplicationContext.getSystemService(Context.CONNECTIVITY_SERVICE);
         mJobDispatcher = new FirebaseJobDispatcher(new GooglePlayDriver(context));
+        mClientId = client;
+        mServerAddress = serverAddress;
+        mServerPort = port;
         scheduleSocketOpening();
     }
 
@@ -108,19 +120,20 @@ public class uMQTTController {
         return mInstance;
     }
 
-    public static void init(Context context) {
+    public static void init(Context context, String client, String serverAddress, int port) {
         if (mInstance != null) {
             throw new IllegalStateException(
                     "Cannot initialize controller twice!");
         }
-        mInstance = new uMQTTController(context);
+        mInstance = new uMQTTController(context, client, serverAddress, port);
     }
 
-    private void scheduleSocketOpening() {
+    public void scheduleSocketOpening() {
         Job openSocketJob = mJobDispatcher.newJobBuilder()
                 .setService(NetworkJobService.class)
                 .setTag(JS_NETWORK_OPEN_SOCKET_JOB)
                 .setConstraints(Constraint.ON_ANY_NETWORK)
+                .setTrigger(Trigger.NOW)
                 .build();
 
         mJobDispatcher.mustSchedule(openSocketJob);
@@ -129,6 +142,8 @@ public class uMQTTController {
     public void openSocket(SocketStatusTask task) {
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
         i.setAction(ACTION_OPEN_MQTT);
+        i.putExtra(EXTRA_SERVER_ADDRESS, mServerAddress);
+        i.putExtra(EXTRA_SERVER_PORT, mServerPort);
         mApplicationContext.startService(i);
         mRunWhenSocketOpen = task;
     }
@@ -150,6 +165,7 @@ public class uMQTTController {
 
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
         i.setAction(ACTION_CONNECT);
+        i.putExtra(EXTRA_CLIENT_ID, mClientId);
         mApplicationContext.startService(i);
     }
 
@@ -187,7 +203,7 @@ public class uMQTTController {
         mInputService.stop();
     }
 
-    private boolean isConnected() {
+    public boolean isConnected() {
         NetworkInfo activeNetwork = mConnectivityManager.getActiveNetworkInfo();
         boolean connected = activeNetwork != null && activeNetwork.isConnected()
                 && mSocket != null;
