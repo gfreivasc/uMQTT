@@ -10,7 +10,7 @@ public abstract class uMQTTPublisher {
 
     protected byte qosLevel = 0b00;
     protected String topic;
-    protected HashMap<Short, uMQTTPublish> publishes;
+    private HashMap<Short, uMQTTPublish> publishes;
 
     protected uMQTTPublisher(String topic, byte qosLevel) {
         this.topic = topic;
@@ -23,6 +23,10 @@ public abstract class uMQTTPublisher {
         if (publishes == null) publishes = new HashMap<>();
         publishes.put(publish.getPacketId(), publish);
         return publish.getPacketId();
+    }
+
+    protected uMQTTPublish getPublish(short packetId) {
+        return publishes.get(packetId);
     }
 
     protected abstract void onPublishCompleted(short packetId);

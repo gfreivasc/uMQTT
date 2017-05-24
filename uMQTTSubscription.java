@@ -23,11 +23,11 @@ public class uMQTTSubscription {
      * @author gabriel
      */
     public interface OnReceivedPublish {
-        void onReceivedPublish(String message);
+        void onReceivedPublish(String topic, String message);
     }
 
     void dispatchMessage(String message) {
-        publishCallback.onReceivedPublish(message);
+        publishCallback.onReceivedPublish(topic, message);
     }
 
     void setRequestPacketId(short packetId) { requestPacketId = packetId; }

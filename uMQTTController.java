@@ -232,6 +232,31 @@ public class uMQTTController {
         }
     }
 
+    public void addSubscriptions(String[] topics, byte[] qosLevels,
+                                 uMQTTSubscription.OnReceivedPublish onReceivedPublish) {
+        if (mSubscriptions == null) mSubscriptions = new HashMap<>();
+        if (topics.length != qosLevels.length)
+            throw new UnsupportedOperationException("Number of topics and QoSLevels differ");
+
+        uMQTTSubscription[] subscriptions = new uMQTTSubscription[topics.length];
+        for (int i = 0; i < topics.length; ++i) {
+            subscriptions[i] = new uMQTTSubscription(topics[i], qosLevels[i], onReceivedPublish);
+            mSubscriptions.put(topics[i], subscriptions[i]);
+        }
+        if (mConnectedToBroker && isConnected()) {
+            Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
+            i.setAction(ACTION_SUBSCRIBE);
+            i.putExtra(EXTRA_TOPICS, topics);
+            i.putExtra(EXTRA_TOPICS_QOS, qosLevels);
+            mApplicationContext.startService(i);
+        }
+        else {
+            if (mUnsentSubscriptions == null) mUnsentSubscriptions = new ArrayList<>();
+            for (uMQTTSubscription subscription : subscriptions)
+                mUnsentSubscriptions.add(subscription);
+        }
+    }
+
     void setSubscriptionsAsAwaiting(short packetId, String[] topics) {
         if (mSubscriptionsAwaitingResponse == null)
             mSubscriptionsAwaitingResponse = new ArrayList<>();
