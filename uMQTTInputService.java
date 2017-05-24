@@ -93,7 +93,7 @@ public class uMQTTInputService {
     private synchronized void dispatchMessage(byte[] excerpt) {
         switch (mReadState) {
             case RS_WAITING:
-                remainingSize = excerpt[1];
+                remainingSize = (excerpt[1] & 0x7f);
                 if ((excerpt[1] & 0x80) != 0) {
                     mReadState = RS_FETCHING_REMAINING_SIZE;
                     readStepSize = BYTES_SINGLE_STEP;

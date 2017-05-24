@@ -308,6 +308,8 @@ public class uMQTTController {
     }
 
     void addPublish(uMQTTPublish publish) {
+        if (mUnsentPublishes == null) mUnsentPublishes = new HashMap<>();
+        mUnsentPublishes.put(publish.getPacketId(), publish);
         if (mConnectedToBroker && isConnected()) {
             Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
             i.setAction(ACTION_PUBLISH);
@@ -315,12 +317,12 @@ public class uMQTTController {
             mApplicationContext.startService(i);
         }
         publish.transactionAdvance();
-        if (publish.getQosLevel() > 0) {
-            if (mUnsentPublishes == null) mUnsentPublishes = new HashMap<>();
-            mUnsentPublishes.put(publish.getPacketId(), publish);
-        }
         Timber.v("Sent PUBLISH packet to %s (packet id: %d)",
                 publish.getTopic(), publish.getPacketId());
+    }
+
+    void sentQoS0Packet(short packetId) {
+        mUnsentSubscriptions.remove(packetId);
     }
 
     byte[] getPacket(short packetId) {
@@ -343,6 +345,8 @@ public class uMQTTController {
     void advanceInboundTransaction(uMQTTPublish publish) {
         publish.transactionAdvance();
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
+        if (mUnhandledPublishes == null) mUnhandledPublishes = new HashMap<>();
+        mUnhandledPublishes.put(publish.getPacketId(), publish);
         i.setAction(ACTION_FORWARD_PUBLISH);
         i.putExtra(EXTRA_PACKET_ID, publish.getPacketId());
         if (publish.getQosLevel() == 0b01) {
@@ -354,10 +358,7 @@ public class uMQTTController {
             Timber.v("Sending PUBREC for packet id %d", publish.getPacketId());
         }
         else return;
-
         mApplicationContext.startService(i);
-        if (mUnhandledPublishes == null) mUnhandledPublishes = new HashMap<>();
-        mUnhandledPublishes.put(publish.getPacketId(), publish);
     }
 
     void advanceInboundTransaction(short packetId) {

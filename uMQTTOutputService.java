@@ -104,6 +104,8 @@ public class uMQTTOutputService extends IntentService {
 
         try {
             byte[] packet = mController.getPacket(packetId);
+            if (((packet[0] >> 1) & 0b11) == 0b00)
+                mController.sentQoS0Packet(packetId);
             mController.getSocket().getOutputStream().write(packet);
         }
         catch (IOException e) {
