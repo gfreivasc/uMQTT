@@ -345,7 +345,6 @@ public class uMQTTController {
     }
 
     void advanceInboundTransaction(uMQTTPublish publish) {
-        Log.v("KEKE", "Got pobrish " + publish.getPacketId());
         publish.transactionAdvance();
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
         if (mUnhandledPublishes == null) mUnhandledPublishes = new HashMap<>();
@@ -365,7 +364,6 @@ public class uMQTTController {
     }
 
     void advanceInboundTransaction(short packetId) {
-        Log.v("KEKE", "Eerdvencin pobrish " + packetId);
         uMQTTPublish publish = mUnhandledPublishes.get(packetId);
         publish.transactionAdvance();
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
