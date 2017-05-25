@@ -131,7 +131,7 @@ public class uMQTTFrame {
          * @param payload the string corresponding to the payload
          */
         public PublishBuilder setPayload(String payload) {
-            return setPayload(frame.encodeString(payload));
+            return setPayload(payload.getBytes());
         }
 
         /**
@@ -457,6 +457,6 @@ public class uMQTTFrame {
     }
 
     static int fetchBytes(byte msb, byte lsb) {
-        return ((msb << 8) + lsb) & 0xffff;
+        return ((msb << 8) + lsb) & 0x7fff;
     }
 }

@@ -67,17 +67,18 @@ public class uMQTTPublish {
 
         // Fetch packet full size (remaining + 2)
         int fullSize = 0;
-        int i = 1;
+        int i = 0;
+        int multiplier = 1;
         do {
-            fullSize *= 0x80;
-            fullSize += packet[i] & 0x7f;
             i++;
+            fullSize += (packet[i] & 0x7f) * multiplier;
+            multiplier *= 0x80;
         } while ((packet[i] & 0x80) != 0);
-        fullSize += 2;
+        fullSize += ++i;
 
         // Fetch topic. First, get topic size
         StringBuilder builder = new StringBuilder();
-        int currentSize = packet[i] * 0xff + packet[i + 1];
+        int currentSize = (packet[i] << 8) + packet[i + 1];
         i += 2;
         for (int j = 0; j <  currentSize; ++j) {
             builder.append((char) packet[i + j]);

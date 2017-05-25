@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.firebase.jobdispatcher.Constraint;
 import com.firebase.jobdispatcher.FirebaseJobDispatcher;
@@ -344,6 +345,7 @@ public class uMQTTController {
     }
 
     void advanceInboundTransaction(uMQTTPublish publish) {
+        Log.v("KEKE", "Got pobrish " + publish.getPacketId());
         publish.transactionAdvance();
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
         if (mUnhandledPublishes == null) mUnhandledPublishes = new HashMap<>();
@@ -363,6 +365,7 @@ public class uMQTTController {
     }
 
     void advanceInboundTransaction(short packetId) {
+        Log.v("KEKE", "Eerdvencin pobrish " + packetId);
         uMQTTPublish publish = mUnhandledPublishes.get(packetId);
         publish.transactionAdvance();
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
