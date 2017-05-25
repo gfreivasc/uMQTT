@@ -322,7 +322,8 @@ public class uMQTTController {
     }
 
     void sentQoS0Packet(short packetId) {
-        mUnsentSubscriptions.remove(packetId);
+        if (mUnsentSubscriptions != null)
+            mUnsentSubscriptions.remove(packetId);
     }
 
     byte[] getPacket(short packetId) {

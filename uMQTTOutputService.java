@@ -137,10 +137,10 @@ public class uMQTTOutputService extends IntentService {
         try {
             try {
                 frame = new uMQTTFrame.ConnectBuilder()
-                        .setClientId("543badf00d4da0074daf00ba")
+                        .setClientId(clientId)
                         .setWillFlag()
                         .setWillMessage("Disconnect")
-                        .setWillTopic("inbox/control")
+                        .setWillTopic("a/b")
                         .setWillQoS(0b01)
                         .setKeepAlive((short)uMQTTController.DEFAULT_KEEP_ALIVE)
                         .build();
