@@ -28,14 +28,7 @@ public class uMQTTOutputService extends IntentService {
             return;
         }
 
-        switch (intent.getAction()){
-            case uMQTTController.ACTION_OPEN_MQTT:
-                if (!intent.hasExtra(uMQTTController.EXTRA_SERVER_ADDRESS)
-                        || !intent.hasExtra(uMQTTController.EXTRA_SERVER_PORT))
-                    throw new UnsupportedOperationException("Connection information missing");
-                openSocket(intent.getStringExtra(uMQTTController.EXTRA_SERVER_ADDRESS),
-                        intent.getIntExtra(uMQTTController.EXTRA_SERVER_PORT, 1883));
-                break;
+        switch (intent.getAction()) {
             case uMQTTController.ACTION_CONNECT:
                 if (!intent.hasExtra(uMQTTController.EXTRA_CLIENT_ID))
                     throw new UnsupportedOperationException("Missing client ID");
@@ -82,18 +75,6 @@ public class uMQTTOutputService extends IntentService {
                         intent.getByteExtra(uMQTTController.EXTRA_FRAME_TYPE, (byte) -1),
                         intent.getShortExtra(uMQTTController.EXTRA_PACKET_ID, (short) -1)
                 );
-        }
-    }
-
-    private void openSocket(String serverAddress, int port) {
-        Socket socket;
-        try {
-            socket = new Socket(serverAddress, port);
-            mController.setSocket(socket);
-            mController.startInputListener(socket.getInputStream());
-        }
-        catch (IOException e) {
-            Timber.e("Could not open socket to broker", e);
         }
     }
 

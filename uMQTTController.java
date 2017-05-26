@@ -7,6 +7,9 @@ import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.birbit.android.jobqueue.JobManager;
+import com.birbit.android.jobqueue.config.Configuration;
+import com.birbit.android.jobqueue.scheduling.FrameworkJobSchedulerService;
 import com.firebase.jobdispatcher.Constraint;
 import com.firebase.jobdispatcher.FirebaseJobDispatcher;
 import com.firebase.jobdispatcher.GooglePlayDriver;
@@ -15,11 +18,13 @@ import com.firebase.jobdispatcher.Lifetime;
 import com.firebase.jobdispatcher.RetryStrategy;
 import com.firebase.jobdispatcher.Trigger;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
 import re.usto.umqtt.utils.NetworkJobService;
 import re.usto.umqtt.utils.PingService;
@@ -32,11 +37,11 @@ import timber.log.Timber;
 public class uMQTTController {
 
     private static uMQTTController mInstance;
+    private static Context mApplicationContext;
     private uMQTTInputService mInputService;
-    private Context mApplicationContext;
-    private Socket mSocket;
     private FirebaseJobDispatcher mJobDispatcher;
-    private SocketStatusTask mRunWhenSocketOpen;
+    private JobManager mJobManager;
+    private Socket mSocket;
     private ConnectivityManager mConnectivityManager;
     private HashMap<String, uMQTTSubscription> mSubscriptions;
     private HashMap<Short, String[]> mUnhandledUnsubscriptions;
@@ -49,31 +54,11 @@ public class uMQTTController {
     private String mServerAddress;
     private int mServerPort;
 
-
-    public static abstract class SocketStatusTask implements Runnable {
-
-        private boolean connected = false;
-
-        public void setConnected(boolean connected) {
-            this.connected = connected;
-        }
-
-        @Override
-        public void run() {
-            onSocketOpened(connected);
-        }
-
-        public abstract void onSocketOpened(boolean success);
-
-    }
     private static final String JS_NETWORK_OPEN_SOCKET_JOB = "openSocketJob";
     private static final String JS_PING_JOB = "pingJob";
 
     static final String ACTION_CONNECT =
             "re.usto.maluhia.CONNECT";
-
-    static final String ACTION_OPEN_MQTT =
-            "re.usto.maluhia.OPEN_MQTT";
 
     static final String ACTION_SUBSCRIBE =
             "re.usto.maluhia.SUBSCRIBE";
@@ -91,8 +76,6 @@ public class uMQTTController {
             "re.usto.maluhia.FORWARD_PUBLISH";
 
     static final String EXTRA_CLIENT_ID = "extraClientId";
-    static final String EXTRA_SERVER_ADDRESS = "extraServerAddres";
-    static final String EXTRA_SERVER_PORT = "extraServerPort";
     static final String EXTRA_TOPIC = "extraTopic";
     static final String EXTRA_TOPICS = "extraTopics";
     static final String EXTRA_TOPIC_QOS = "extraTopicQoS";
@@ -107,6 +90,9 @@ public class uMQTTController {
         mConnectivityManager = (ConnectivityManager)
                 mApplicationContext.getSystemService(Context.CONNECTIVITY_SERVICE);
         mJobDispatcher = new FirebaseJobDispatcher(new GooglePlayDriver(context));
+        mJobManager = new JobManager(
+                new Configuration.Builder(context).build()
+        );
         mClientId = client;
         mServerAddress = serverAddress;
         mServerPort = port;
@@ -129,32 +115,17 @@ public class uMQTTController {
         mInstance = new uMQTTController(context, client, serverAddress, port);
     }
 
+    Context getApplicationContext() {
+        return mApplicationContext;
+    }
+
     public void scheduleSocketOpening() {
-        Job openSocketJob = mJobDispatcher.newJobBuilder()
-                .setService(NetworkJobService.class)
-                .setTag(JS_NETWORK_OPEN_SOCKET_JOB)
-                .setConstraints(Constraint.ON_ANY_NETWORK)
-                .setTrigger(Trigger.NOW)
-                .build();
-
-        mJobDispatcher.mustSchedule(openSocketJob);
+        mJobManager.addJobInBackground(new NetworkJobService());
     }
 
-    public void openSocket(SocketStatusTask task) {
-        Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
-        i.setAction(ACTION_OPEN_MQTT);
-        i.putExtra(EXTRA_SERVER_ADDRESS, mServerAddress);
-        i.putExtra(EXTRA_SERVER_PORT, mServerPort);
-        mApplicationContext.startService(i);
-        mRunWhenSocketOpen = task;
-    }
-
-    void setSocket(Socket socket) {
-        mSocket = socket;
-        if (mSocket != null) {
-            mRunWhenSocketOpen.setConnected(mSocket.isConnected());
-            mRunWhenSocketOpen.run();
-        }
+    public void openSocket() throws IOException {
+        mSocket = new Socket(mServerAddress, mServerPort);
+        startInputListener(mSocket.getInputStream());
     }
 
     Socket getSocket() {
@@ -191,9 +162,17 @@ public class uMQTTController {
             i.putExtra(EXTRA_TOPICS_QOS, qosLevels);
             mApplicationContext.startService(i);
         }
+
+        if (mUnsentPublishes != null) {
+            Iterator<Map.Entry<Short, uMQTTPublish>> iterator =
+                    mUnsentPublishes.entrySet().iterator();
+            while (iterator.hasNext()) {
+                addPublish(iterator.next().getValue());
+            }
+        }
     }
 
-    void startInputListener(InputStream inputStream) {
+    private void startInputListener(InputStream inputStream) {
         if (!isConnected()) return;
 
         mInputService = uMQTTInputService.getInstance();
@@ -318,8 +297,8 @@ public class uMQTTController {
             mApplicationContext.startService(i);
         }
         publish.transactionAdvance();
-        Timber.v("Sent PUBLISH packet to %s (packet id: %d)",
-                publish.getTopic(), publish.getPacketId());
+        Timber.v("Sent PUBLISH packet to %s: %s (packet id: %d)",
+                publish.getTopic(), publish.getMessage(), publish.getPacketId());
     }
 
     void sentQoS0Packet(short packetId) {
@@ -333,6 +312,7 @@ public class uMQTTController {
 
     void advanceOutboundTransaction(short packetId) {
         uMQTTPublish publish = mUnsentPublishes.get(packetId);
+        if (publish == null) return;
         publish.transactionAdvance();
         if (publish.getState() == uMQTTPublish.PUB_RECEIVED) {
             Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
@@ -346,6 +326,7 @@ public class uMQTTController {
 
     void advanceInboundTransaction(uMQTTPublish publish) {
         publish.transactionAdvance();
+        if (publish.getQosLevel() == 0) return;
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
         if (mUnhandledPublishes == null) mUnhandledPublishes = new HashMap<>();
         mUnhandledPublishes.put(publish.getPacketId(), publish);
