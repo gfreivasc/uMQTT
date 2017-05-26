@@ -52,7 +52,8 @@ public abstract class uMQTTPublisher {
         uMQTTPublish publish = new uMQTTPublish(topic, message, qosLevel, this);
         mPublishes.put(publish.getPacketId(), publish);
         short packetId = publish.getPacketId();
-        mPublishJobs.add(buildJobTag(packetId));
+        if (publish.getQosLevel() != 0)
+            mPublishJobs.add(buildJobTag(packetId));
         mPublishManager.addJobInBackground(new PublishJob(packetId));
         return packetId;
     }
@@ -84,7 +85,7 @@ public abstract class uMQTTPublisher {
         @Override
         protected RetryConstraint shouldReRunOnThrowable(
                 @NonNull Throwable throwable, int runCount, int maxRunCount) {
-            return null;
+            return RetryConstraint.CANCEL;
         }
 
         @Override
@@ -100,10 +101,11 @@ public abstract class uMQTTPublisher {
     void completePublish(short packetId) {
         String jobTag = buildJobTag(packetId);
         if (!mPublishJobs.contains(jobTag))
-            throw new IllegalStateException("There is no such publish enqueued");
+            return;
         mPublishJobs.remove(jobTag);
         mPublishManager.cancelJobsInBackground(null, TagConstraint.ANY, jobTag);
         onPublishCompleted(packetId);
     }
+
     protected abstract void onPublishCompleted(short packetId);
 }

@@ -124,7 +124,7 @@ public class uMQTTPublish {
                 else uMQTTController.getInstance().publishCallback(topic, message);
                 break;
             case PUB_COMPLETED:
-                throw new IllegalStateException("Publish already completed");
+                break;
         }
     }
 
