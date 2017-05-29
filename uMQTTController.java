@@ -186,7 +186,7 @@ public class uMQTTController {
     public boolean isConnected() {
         NetworkInfo activeNetwork = mConnectivityManager.getActiveNetworkInfo();
         boolean connected = activeNetwork != null && activeNetwork.isConnected()
-                && mSocket != null;
+                && mSocket != null && !mSocket.isClosed() && mSocket.isConnected();
         if (!connected) {
             scheduleSocketOpening();
             mConnectedToBroker = false;
@@ -297,7 +297,7 @@ public class uMQTTController {
             mApplicationContext.startService(i);
         }
         publish.transactionAdvance();
-        Timber.v("Sent PUBLISH packet to %s: %s (packet id: %d)",
+        Timber.v("Sending PUBLISH packet to %s: %s (packet id: %d)",
                 publish.getTopic(), publish.getMessage(), publish.getPacketId());
     }
 
