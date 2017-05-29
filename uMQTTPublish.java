@@ -18,7 +18,7 @@ public class uMQTTPublish {
     private byte qosLevel;
     private uMQTTFrame frame;
     private byte[] packet = null;
-    private short packetId = -1;
+    private short packetId = 0;
     private boolean inbound = false;
     private uMQTTPublisher publisher;
 
@@ -141,7 +141,7 @@ public class uMQTTPublish {
     }
 
     short getPacketId() {
-        if (packetId <= 0) packetId = frame.getPacketId();
+        if (packetId == 0) packetId = frame.getPacketId();
         return packetId;
     }
 

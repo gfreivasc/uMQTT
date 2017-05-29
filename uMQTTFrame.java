@@ -457,6 +457,6 @@ public class uMQTTFrame {
     }
 
     static int fetchBytes(byte msb, byte lsb) {
-        return ((msb << 8) + lsb) & 0x7fff;
+        return ((msb << 8) + lsb) & 0xffff;
     }
 }
