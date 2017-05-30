@@ -69,18 +69,18 @@ public class uMQTTOutputService extends IntentService {
                 pingreq();
                 break;
             case uMQTTController.ACTION_PUBLISH:
-                publish(intent.getShortExtra(uMQTTController.EXTRA_PACKET_ID, (short) -1));
+                publish(intent.getShortExtra(uMQTTController.EXTRA_PACKET_ID, (short) 0));
                 break;
             case uMQTTController.ACTION_FORWARD_PUBLISH:
                 handlePublishTransaction(
-                        intent.getByteExtra(uMQTTController.EXTRA_FRAME_TYPE, (byte) -1),
-                        intent.getShortExtra(uMQTTController.EXTRA_PACKET_ID, (short) -1)
+                        intent.getByteExtra(uMQTTController.EXTRA_FRAME_TYPE, (byte) 0),
+                        intent.getShortExtra(uMQTTController.EXTRA_PACKET_ID, (short) 0)
                 );
         }
     }
 
     private void publish(short packetId) {
-        if (packetId <= 0) {
+        if (packetId == 0) {
             throw new IllegalArgumentException("Problem handling packet ID");
         }
 
@@ -102,7 +102,7 @@ public class uMQTTOutputService extends IntentService {
     }
 
     private void handlePublishTransaction(@uMQTTFrame.MQPacketType int type, short packetId) {
-        if (type <= 0 || packetId <= 0)
+        if (type == 0 || packetId == 0)
             throw new IllegalArgumentException("Problem handling publish transaction");
 
         uMQTTFrame frame;
