@@ -24,18 +24,18 @@ public class uMQTTInputService {
 
     private static final int BYTES_FIXED_HEADER = 2;
     private static final int BYTES_SINGLE_STEP = 1;
-    private static int readStepSize = BYTES_FIXED_HEADER;
+    private static int readStepSize = BYTES_SINGLE_STEP;
     private static int remainingSize = 0;
     private static int readOffset = 0;
-    private static int bytesRead = 0;
+    private static int multiplier = 1;
 
     private static final int
-            RS_WAITING = 0,
+            RS_AWAITING = 0,
             RS_FETCHING_REMAINING_SIZE = 1,
             RS_FETCHING_FULL_PACKET = 2;
 
     @Retention(RetentionPolicy.SOURCE)
-    @IntDef({RS_WAITING, RS_FETCHING_REMAINING_SIZE, RS_FETCHING_FULL_PACKET})
+    @IntDef({RS_AWAITING, RS_FETCHING_REMAINING_SIZE, RS_FETCHING_FULL_PACKET})
     private @interface MQReadState {
     }
 
@@ -47,6 +47,7 @@ public class uMQTTInputService {
     private static byte[] buffer = new byte[INPUT_BUFFER_LENGTH];
 
     private uMQTTInputService() {
+        setListenerAwaiting();
     }
 
     static uMQTTInputService getInstance() {
@@ -61,7 +62,7 @@ public class uMQTTInputService {
                 while (mRun) {
                     int readSize = mInputStream.read(buffer, readOffset, readStepSize);
                     if (readSize > 0)
-                        dispatchMessage(buffer);
+                        parseSocketInput(buffer, readSize);
                 }
             } catch (IOException e) {
                 Timber.e(e);
@@ -90,37 +91,54 @@ public class uMQTTInputService {
     }
 
     @WorkerThread
-    private synchronized void dispatchMessage(byte[] excerpt) {
+    private synchronized void setListenerAwaiting() {
+        mReadState = RS_AWAITING;
+        readOffset = 0;
+        remainingSize = 0;
+        multiplier = 1;
+        readStepSize = BYTES_SINGLE_STEP;
+    }
+
+    @WorkerThread
+    private synchronized void setListenerFetchingRemainingSize() {
+        mReadState = RS_FETCHING_REMAINING_SIZE;
+        readOffset += BYTES_SINGLE_STEP;
+        remainingSize = 0;
+    }
+
+    private synchronized void setListenerFetchingFullPacket() {
+        mReadState = RS_FETCHING_FULL_PACKET;
+        readStepSize = remainingSize;
+    }
+
+    @WorkerThread
+    private synchronized void parseSocketInput(byte[] excerpt, int readSize) {
         switch (mReadState) {
-            case RS_WAITING:
-                remainingSize = (excerpt[1] & 0x7f);
-                if ((excerpt[1] & 0x80) != 0) {
-                    mReadState = RS_FETCHING_REMAINING_SIZE;
-                    readStepSize = BYTES_SINGLE_STEP;
-                } else if (remainingSize > 0) {
-                    mReadState = RS_FETCHING_FULL_PACKET;
-                    readStepSize = remainingSize;
-                } else {
-                    onMessageReceived(excerpt, readOffset);
-                    return;
-                }
-                readOffset += 2;
+            case RS_AWAITING:
+                setListenerFetchingRemainingSize();
                 break;
             case RS_FETCHING_REMAINING_SIZE:
-                remainingSize *= 0x80;
-                remainingSize += excerpt[readOffset];
-                if ((excerpt[readOffset] & 0x80) == 0) {
-                    mReadState = RS_FETCHING_FULL_PACKET;
-                    readStepSize = remainingSize;
+                int digit = excerpt[readOffset];
+                remainingSize += (digit & 0x7f) * multiplier;
+                multiplier *= 0x80;
+                readOffset += BYTES_SINGLE_STEP;
+                if ((digit & 0x80) == 0) {
+                    if (remainingSize == 0) {
+                        onMessageReceived(excerpt, BYTES_FIXED_HEADER);
+                        setListenerAwaiting();
+                    }
+                    else setListenerFetchingFullPacket();
                 }
-                readOffset++;
                 break;
             case RS_FETCHING_FULL_PACKET:
-                onMessageReceived(excerpt, readOffset + readStepSize);
-                mReadState = RS_WAITING;
-                readStepSize = BYTES_FIXED_HEADER;
-                readOffset = 0;
-                remainingSize = 0;
+                if (readSize < readStepSize) {
+                    readStepSize -= readSize;
+                    readOffset += readSize;
+                }
+                else {
+                    onMessageReceived(excerpt, readOffset + readStepSize);
+                    setListenerAwaiting();
+                }
                 break;
         }
     }
@@ -149,6 +167,7 @@ public class uMQTTInputService {
                 handleInboundQoS(type, message);
                 break;
             default:
+                Timber.wtf("Unexpected packet type (#%d) received", type);
                 break;
         }
     }
