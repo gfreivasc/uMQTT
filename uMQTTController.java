@@ -120,6 +120,12 @@ public class uMQTTController {
     }
 
     public void scheduleSocketOpening() {
+        try {
+            if (mSocket != null && !mSocket.isClosed()) mSocket.close();
+        }
+        catch (IOException e) {
+            Timber.e(e, "Could not close socket!");
+        }
         mJobManager.addJobInBackground(new NetworkJobService());
     }
 
