@@ -1,6 +1,5 @@
 package re.usto.umqtt;
 
-import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -10,8 +9,6 @@ import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.RetryConstraint;
 import com.birbit.android.jobqueue.TagConstraint;
 import com.birbit.android.jobqueue.config.Configuration;
-import com.firebase.jobdispatcher.JobParameters;
-import com.firebase.jobdispatcher.JobService;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,7 +16,7 @@ import java.util.HashMap;
 import timber.log.Timber;
 
 /**
- * Created by gabriel on 5/22/17.
+ * @author gabriel 
  */
 
 public abstract class uMQTTPublisher {
@@ -50,11 +47,16 @@ public abstract class uMQTTPublisher {
 
     public short publish(String message) {
         uMQTTPublish publish = new uMQTTPublish(topic, message, qosLevel, this);
-        mPublishes.put(publish.getPacketId(), publish);
-        short packetId = publish.getPacketId();
-        if (publish.getQosLevel() != 0)
+        short packetId = 0;
+        if (publish.getQosLevel() > 0) {
+            packetId = publish.getPacketId();
+            mPublishes.put(publish.getPacketId(), publish);
             mPublishJobs.add(buildJobTag(packetId));
-        mPublishManager.addJobInBackground(new PublishJob(packetId));
+            mPublishManager.addJobInBackground(new PublishJob(packetId));
+        }
+        else {
+            uMQTTController.getInstance().addPublish(publish);
+        }
         return packetId;
     }
 

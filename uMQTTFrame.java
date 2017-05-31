@@ -98,10 +98,9 @@ public class uMQTTFrame {
 
     public static class PublishBuilder extends Builder {
 
-        private boolean mTopicSet = false;
         private boolean mPayloadSet = false;
         private byte mQoSLevel;
-        private byte[] mTopic;
+        private byte[] mTopic = null;
 
         public PublishBuilder() {
             super(MQ_PUBLISH);
@@ -153,7 +152,7 @@ public class uMQTTFrame {
 
         @Override
         public uMQTTFrame build() throws BrokenMQTTFrameException {
-            if (!mTopicSet || !mPayloadSet) {
+            if (mTopic == null || !mPayloadSet) {
                 throw new BrokenMQTTFrameException(
                         "Packet is malformed. Did you forger information?");
             }
