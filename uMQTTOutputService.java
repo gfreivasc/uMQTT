@@ -176,8 +176,9 @@ public class uMQTTOutputService extends IntentService {
 
             if (unsubscribe)
                 mController.addToUnhandledUnsubscriptions(frame.getPacketId(), new String[]{topic});
+            else
+                mController.setSubscriptionsAsAwaiting(frame.getPacketId(), new String[]{topic});
             mController.getSocket().getOutputStream().write(frame.getPacket());
-            mController.setSubscriptionsAsAwaiting(frame.getPacketId(), new String[]{topic});
             Timber.v("%subscribing to topic %s", unsubscribe ? "Un" : "S", topic);
         }
         catch (IOException e) {
@@ -209,8 +210,9 @@ public class uMQTTOutputService extends IntentService {
 
             if (unsubscribe)
                 mController.addToUnhandledUnsubscriptions(frame.getPacketId(), topics);
+            else
+                mController.setSubscriptionsAsAwaiting(frame.getPacketId(), topics);
             mController.getSocket().getOutputStream().write(frame.getPacket());
-            mController.setSubscriptionsAsAwaiting(frame.getPacketId(), topics);
             Timber.v("Subscribing to %d topics", topics.length);
         }
         catch (IOException e) {

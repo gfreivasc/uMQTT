@@ -384,6 +384,13 @@ public class uMQTTController {
         mApplicationContext.startService(i);
     }
 
+    private void forceUnsubscribeFromTopic(String topic) {
+        Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
+        i.setAction(ACTION_UNSUBSCRIBE);
+        i.putExtra(EXTRA_TOPIC, topic);
+        mApplicationContext.startService(i);
+    }
+
     public void unsubscribeFromTopics(String[] topics) {
         boolean send = false;
         for (String topic : topics) {
@@ -416,8 +423,9 @@ public class uMQTTController {
     void removeSubscriptions(short packetId) {
         String[] topics = mUnhandledUnsubscriptions.get(packetId);
 
-        for (String topic : topics)
-            mSubscriptions.remove(topic);
+        if (topics != null)
+            for (String topic : topics)
+                mSubscriptions.remove(topic);
 
         mUnhandledUnsubscriptions.remove(packetId);
     }
@@ -428,6 +436,8 @@ public class uMQTTController {
         }
         catch (NullPointerException e) {
             Timber.e(e, "No subscription found tor topic %s", topic);
+            Timber.w("Cancelling subscription to unhandled topic %s with broker", topic);
+            forceUnsubscribeFromTopic(topic);
         }
     }
 }
