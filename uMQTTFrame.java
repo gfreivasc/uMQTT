@@ -100,6 +100,8 @@ public class uMQTTFrame {
 
         private boolean mTopicSet = false;
         private boolean mPayloadSet = false;
+        private byte mQoSLevel;
+        private byte[] mTopic;
 
         public PublishBuilder() {
             super(MQ_PUBLISH);
@@ -110,19 +112,7 @@ public class uMQTTFrame {
          * @param topic the MQTT topic
          */
         public PublishBuilder setTopic(String topic) {
-            return setTopic(frame.encodeString(topic));
-        }
-
-        /**
-         * PUBLISH packets specific data. Sets the topic the frame will be published to.
-         * @param topic the UTF encoded byte array corresponding to the MQTT topic
-         */
-        public PublishBuilder setTopic(byte[] topic) {
-            frame.variableHeader = new byte[topic.length + 2];
-            for (int i = 0; i < topic.length; ++i) {
-                frame.variableHeader[i] = topic[i];
-            }
-            mTopicSet = true;
+            mTopic = frame.encodeString(topic);
             return this;
         }
 
@@ -151,6 +141,7 @@ public class uMQTTFrame {
 
         public PublishBuilder setQosLevel(@IntRange(from=0b00, to=0b10) int level) {
             frame.fixedHeader |= level << 1;
+            mQoSLevel = (byte) level;
             mQosSet = true;
             return this;
         }
@@ -170,11 +161,20 @@ public class uMQTTFrame {
                 Timber.w("QoS not set. Setting default (QoS 0).");
             }
 
-            frame.setPacketId();
-            frame.variableHeader[frame.variableHeader.length - 2] =
-                    (byte)((frame.getPacketId() >> 8) & 0xff);
-            frame.variableHeader[frame.variableHeader.length - 1] =
-                    (byte)(frame.getPacketId() & 0xff);
+            if (mQoSLevel > 0) {
+                frame.variableHeader = new byte[mTopic.length + 2];
+                for (int i = 0; i < mTopic.length; ++i) {
+                    frame.variableHeader[i] = mTopic[i];
+
+                }
+                frame.setPacketId();
+                frame.variableHeader[frame.variableHeader.length - 2] =
+                        (byte)((frame.getPacketId() >> 8) & 0xff);
+                frame.variableHeader[frame.variableHeader.length - 1] =
+                        (byte)(frame.getPacketId() & 0xff);
+            }
+            else frame.variableHeader = mTopic;
+
             return frame;
         }
     }

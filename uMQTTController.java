@@ -435,7 +435,7 @@ public class uMQTTController {
             mSubscriptions.get(topic).dispatchMessage(message);
         }
         catch (NullPointerException e) {
-            Timber.e(e, "No subscription found tor topic %s", topic);
+            Timber.w(e, "No subscription found tor topic %s", topic);
         }
     }
 }
