@@ -436,8 +436,6 @@ public class uMQTTController {
         }
         catch (NullPointerException e) {
             Timber.e(e, "No subscription found tor topic %s", topic);
-            Timber.w("Cancelling subscription to unhandled topic %s with broker", topic);
-            forceUnsubscribeFromTopic(topic);
         }
     }
 }
