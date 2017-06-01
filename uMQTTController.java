@@ -203,7 +203,7 @@ public class uMQTTController {
         return connected;
     }
 
-    public void disconnect() {
+    public void sendDisconnect() {
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
         i.setAction(ACTION_DISCONNECT);
         mApplicationContext.startService(i);
@@ -445,6 +445,17 @@ public class uMQTTController {
         }
         catch (NullPointerException e) {
             Timber.w(e, "No subscription found tor topic %s", topic);
+        }
+    }
+
+    public void close() {
+        sendDisconnect();
+        stopInputListener();
+        try {
+            mSocket.close();
+        }
+        catch (IOException e) {
+            Timber.wtf(e);
         }
     }
 }
