@@ -28,6 +28,7 @@ public class uMQTTInputService {
     private static int remainingSize = 0;
     private static int readOffset = 0;
     private static int multiplier = 1;
+    private boolean mWaitingConnack = true;
 
     private static final int
             RS_AWAITING = 0,
@@ -47,6 +48,7 @@ public class uMQTTInputService {
     private static byte[] buffer = new byte[INPUT_BUFFER_LENGTH];
 
     private uMQTTInputService() {
+        mWaitingConnack = true;
         setListenerAwaiting();
     }
 
@@ -80,6 +82,7 @@ public class uMQTTInputService {
     void start(InputStream mqttSocketInput) {
         mRun = true;
         mInputStream = mqttSocketInput;
+        mWaitingConnack = true;
         mTCPListenerThread = new Thread(mListener);
         mTCPListenerThread.start();
         uMQTTController.getInstance().establishConnection();
@@ -115,6 +118,11 @@ public class uMQTTInputService {
     private synchronized void parseSocketInput(byte[] excerpt, int readSize) {
         switch (mReadState) {
             case RS_AWAITING:
+                @uMQTTFrame.MQPacketType int type = (excerpt[0] >> 4) & 0xf;
+                if (mWaitingConnack && type != uMQTTFrame.MQ_CONNACK) {
+                    break;
+                }
+                else if (mWaitingConnack) mWaitingConnack = false;
                 setListenerFetchingRemainingSize();
                 break;
             case RS_FETCHING_REMAINING_SIZE:
@@ -220,6 +228,10 @@ public class uMQTTInputService {
                 break;
             case 5:
                 Timber.d("Connection refused: unauthorized");
+                break;
+            default:
+                Timber.w("Unsupported connection response. Ignoring");
+                mWaitingConnack = true;
                 break;
         }
     }
