@@ -158,6 +158,30 @@ public class uMQTTOutputService extends IntentService {
         }
     }
 
+    private void disconnect() {
+        uMQTTFrame frame;
+        try {
+            frame = new uMQTTFrame.Builder(uMQTTFrame.MQ_DISCONNECT)
+                    .build();
+        }
+        catch (BrokenMQTTFrameException e) {
+            Timber.e(e);
+            return;
+        }
+        try {
+            mController.getSocket().getOutputStream().write(frame.getPacket());
+        }
+        catch (IOException e) {
+            Timber.e(e, "Socket connection is broken. Closing socket");
+            try {
+                mController.getSocket().close();
+            }
+            catch (IOException ex) {
+                Timber.wtf(ex);
+            }
+        }
+    }
+
     private void subscribe(String topic, byte qosLevel, boolean unsubscribe) {
         uMQTTFrame frame;
         try {
