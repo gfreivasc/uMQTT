@@ -35,6 +35,9 @@ public class uMQTTOutputService extends IntentService {
                     throw new UnsupportedOperationException("Missing client ID");
                 connect(intent.getStringExtra(uMQTTController.EXTRA_CLIENT_ID));
                 break;
+            case uMQTTController.ACTION_DISCONNECT:
+                disconnect();
+                break;
             case uMQTTController.ACTION_SUBSCRIBE:
                 if ((!intent.hasExtra(uMQTTController.EXTRA_TOPIC)
                         || !intent.hasExtra(uMQTTController.EXTRA_TOPIC_QOS))

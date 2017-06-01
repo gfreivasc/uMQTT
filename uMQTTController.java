@@ -60,6 +60,9 @@ public class uMQTTController {
     static final String ACTION_CONNECT =
             "re.usto.maluhia.CONNECT";
 
+    static final String ACTION_DISCONNECT =
+            "re.usto.maluhia.DISCONNECT";
+
     static final String ACTION_SUBSCRIBE =
             "re.usto.maluhia.SUBSCRIBE";
 
@@ -198,6 +201,12 @@ public class uMQTTController {
             mConnectedToBroker = false;
         }
         return connected;
+    }
+
+    public void disconnect() {
+        Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
+        i.setAction(ACTION_DISCONNECT);
+        mApplicationContext.startService(i);
     }
 
     public void addSubscription(String topic, byte qosLevel,
