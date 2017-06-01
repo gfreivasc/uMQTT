@@ -172,7 +172,10 @@ public class uMQTTFrame {
                 frame.variableHeader[frame.variableHeader.length - 1] =
                         (byte)(frame.getPacketId() & 0xff);
             }
-            else frame.variableHeader = mTopic;
+            else {
+                frame.setPacketId();
+                frame.variableHeader = mTopic;
+            }
 
             return frame;
         }

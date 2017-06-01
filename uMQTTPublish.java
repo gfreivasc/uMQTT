@@ -87,8 +87,11 @@ public class uMQTTPublish {
 
         // Packet ID
         i += this.topic.length();
-        this.packetId = (short)uMQTTFrame.fetchBytes(packet[i], packet[i + 1]);
-        i += 2;
+
+        if (this.qosLevel != 0) {
+            this.packetId = (short) uMQTTFrame.fetchBytes(packet[i], packet[i + 1]);
+            i += 2;
+        }
 
         // And now the payload
         builder = new StringBuilder();
