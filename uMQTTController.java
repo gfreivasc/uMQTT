@@ -134,7 +134,9 @@ public class uMQTTController {
 
     public void openSocket() throws IOException {
         mSocket = new Socket(mServerAddress, mServerPort);
-        startInputListener(mSocket.getInputStream());
+        if (mSocket.isConnected())
+            startInputListener(mSocket.getInputStream());
+        else throw new IOException("Could not connect to broker");
     }
 
     Socket getSocket() {
