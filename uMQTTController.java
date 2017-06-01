@@ -4,12 +4,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.os.Bundle;
-import android.util.Log;
 
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.config.Configuration;
-import com.birbit.android.jobqueue.scheduling.FrameworkJobSchedulerService;
 import com.firebase.jobdispatcher.Constraint;
 import com.firebase.jobdispatcher.FirebaseJobDispatcher;
 import com.firebase.jobdispatcher.GooglePlayDriver;
@@ -48,11 +45,12 @@ public class uMQTTController {
     private HashMap<Short, uMQTTPublish> mUnsentPublishes;
     private HashMap<Short, uMQTTPublish> mUnhandledPublishes;
     private ArrayList<uMQTTSubscription> mSubscriptionsAwaitingResponse;
-    private ArrayList<uMQTTSubscription> mUnsentSubscriptions;
+    private ArrayList<uMQTTSubscription> mSubscriptionFrames;
     private boolean mConnectedToBroker = false;
     private String mClientId;
     private String mServerAddress;
     private int mServerPort;
+    private boolean mHadConnection;
 
     private static final String JS_NETWORK_OPEN_SOCKET_JOB = "openSocketJob";
     private static final String JS_PING_JOB = "pingJob";
@@ -99,6 +97,7 @@ public class uMQTTController {
         mClientId = client;
         mServerAddress = serverAddress;
         mServerPort = port;
+        mHadConnection = false;
         scheduleSocketOpening();
     }
 
@@ -133,6 +132,7 @@ public class uMQTTController {
     }
 
     public void openSocket() throws IOException {
+        mConnectedToBroker = false;
         mSocket = new Socket(mServerAddress, mServerPort);
         if (mSocket.isConnected())
             startInputListener(mSocket.getInputStream());
@@ -144,8 +144,6 @@ public class uMQTTController {
     }
 
     void establishConnection() {
-        if (!isConnected()) return;
-
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
         i.setAction(ACTION_CONNECT);
         i.putExtra(EXTRA_CLIENT_ID, mClientId);
@@ -156,16 +154,14 @@ public class uMQTTController {
         mConnectedToBroker = true;
         startKeepAliveMechanism();
 
-        if (mUnsentSubscriptions != null) {
-            String[] topics = new String[mUnsentSubscriptions.size()];
-            byte[] qosLevels = new byte[mUnsentSubscriptions.size()];
+        if (mSubscriptionFrames != null) {
+            String[] topics = new String[mSubscriptionFrames.size()];
+            byte[] qosLevels = new byte[mSubscriptionFrames.size()];
 
-            for (int j = 0; j < mUnsentSubscriptions.size(); ++j) {
-                topics[j] = mUnsentSubscriptions.get(j).getTopic();
-                qosLevels[j] = mUnsentSubscriptions.get(j).getRequestedQoSLevel();
+            for (int j = 0; j < mSubscriptionFrames.size(); ++j) {
+                topics[j] = mSubscriptionFrames.get(j).getTopic();
+                qosLevels[j] = mSubscriptionFrames.get(j).getRequestedQoSLevel();
             }
-
-            mUnsentSubscriptions = null;
 
             Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
             i.setAction(ACTION_SUBSCRIBE);
@@ -184,25 +180,12 @@ public class uMQTTController {
     }
 
     private void startInputListener(InputStream inputStream) {
-        if (!isConnected()) return;
-
         mInputService = uMQTTInputService.getInstance();
         mInputService.start(inputStream);
     }
 
     public void stopInputListener() {
         mInputService.stop();
-    }
-
-    public boolean isConnected() {
-        NetworkInfo activeNetwork = mConnectivityManager.getActiveNetworkInfo();
-        boolean connected = activeNetwork != null && activeNetwork.isConnected()
-                && mSocket != null && !mSocket.isClosed() && mSocket.isConnected();
-        if (!connected) {
-            scheduleSocketOpening();
-            mConnectedToBroker = false;
-        }
-        return connected;
     }
 
     public void sendDisconnect() {
@@ -216,7 +199,7 @@ public class uMQTTController {
         if (mSubscriptions == null) mSubscriptions = new HashMap<>();
         uMQTTSubscription subscription = new uMQTTSubscription(topic, qosLevel, onReceivedPublish);
         mSubscriptions.put(topic, subscription);
-        if (mConnectedToBroker && isConnected()) {
+        if (mConnectedToBroker) {
             Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
             i.setAction(ACTION_SUBSCRIBE);
             i.putExtra(EXTRA_TOPIC, topic);
@@ -224,8 +207,8 @@ public class uMQTTController {
             mApplicationContext.startService(i);
         }
         else {
-            if (mUnsentSubscriptions == null) mUnsentSubscriptions = new ArrayList<>();
-            mUnsentSubscriptions.add(subscription);
+            if (mSubscriptionFrames == null) mSubscriptionFrames = new ArrayList<>();
+            mSubscriptionFrames.add(subscription);
         }
     }
 
@@ -240,7 +223,7 @@ public class uMQTTController {
             subscriptions[i] = new uMQTTSubscription(topics[i], qosLevels[i], onReceivedPublish);
             mSubscriptions.put(topics[i], subscriptions[i]);
         }
-        if (mConnectedToBroker && isConnected()) {
+        if (mConnectedToBroker) {
             Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
             i.setAction(ACTION_SUBSCRIBE);
             i.putExtra(EXTRA_TOPICS, topics);
@@ -248,9 +231,9 @@ public class uMQTTController {
             mApplicationContext.startService(i);
         }
         else {
-            if (mUnsentSubscriptions == null) mUnsentSubscriptions = new ArrayList<>();
+            if (mSubscriptionFrames == null) mSubscriptionFrames = new ArrayList<>();
             for (uMQTTSubscription subscription : subscriptions)
-                mUnsentSubscriptions.add(subscription);
+                mSubscriptionFrames.add(subscription);
         }
     }
 
@@ -297,8 +280,6 @@ public class uMQTTController {
     }
 
     public void sendPing() {
-        if (!isConnected()) return;
-
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
         i.setAction(ACTION_PING);
         mApplicationContext.startService(i);
@@ -307,7 +288,7 @@ public class uMQTTController {
     void addPublish(uMQTTPublish publish) {
         if (mUnsentPublishes == null) mUnsentPublishes = new HashMap<>();
         mUnsentPublishes.put(publish.getPacketId(), publish);
-        if (mConnectedToBroker && isConnected()) {
+        if (mConnectedToBroker) {
             Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
             i.setAction(ACTION_PUBLISH);
             i.putExtra(EXTRA_PACKET_ID, publish.getPacketId());
@@ -319,8 +300,8 @@ public class uMQTTController {
     }
 
     void sentQoS0Packet(short packetId) {
-        if (mUnsentSubscriptions != null)
-            mUnsentSubscriptions.remove(packetId);
+        if (mUnsentPublishes != null)
+            mUnsentPublishes.remove(packetId);
     }
 
     byte[] getPacket(short packetId) {
@@ -381,11 +362,11 @@ public class uMQTTController {
             Timber.w("There's no subscription to topic %s", topic);
             return;
         }
-        else if (mUnsentSubscriptions != null
-                && mUnsentSubscriptions.contains(mSubscriptions.get(topic))) {
+        else if (mSubscriptionFrames != null
+                && mSubscriptionFrames.contains(mSubscriptions.get(topic))) {
             Timber.d("Subscription for topic %s has not been sent"
                     + " and was removed from queue", topic);
-            mUnsentSubscriptions.remove(mSubscriptions.get(topic));
+            mSubscriptionFrames.remove(mSubscriptions.get(topic));
             return;
         }
 
@@ -409,11 +390,11 @@ public class uMQTTController {
                 Timber.w("There's no valid subscription to topic %s", topic);
                 return;
             }
-            else if (mUnsentSubscriptions != null
-                    && mUnsentSubscriptions.contains(mSubscriptions.get(topic))) {
+            else if (mSubscriptionFrames != null
+                    && mSubscriptionFrames.contains(mSubscriptions.get(topic))) {
                 Timber.d("Subscription for topic %s has not been sent"
                         + " and was removed from queue", topic);
-                mUnsentSubscriptions.remove(mSubscriptions.get(topic));
+                mSubscriptionFrames.remove(mSubscriptions.get(topic));
             }
             else send = true;
         }
@@ -459,5 +440,9 @@ public class uMQTTController {
         catch (IOException e) {
             Timber.wtf(e);
         }
+    }
+
+    public boolean isConnected() {
+        return mConnectedToBroker;
     }
 }

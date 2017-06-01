@@ -65,6 +65,9 @@ public class uMQTTInputService {
                     int readSize = mInputStream.read(buffer, readOffset, readStepSize);
                     if (readSize > 0)
                         parseSocketInput(buffer, readSize);
+                    else if (readSize == -1) {
+                        throw new IOException("Connection closed by broker.");
+                    }
                 }
             } catch (IOException e) {
                 Timber.e(e);

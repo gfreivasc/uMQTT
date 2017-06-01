@@ -97,6 +97,7 @@ public class uMQTTOutputService extends IntentService {
             Timber.e(e, "Could not send publish to broker.");
             try {
                 mController.getSocket().close();
+                mController.scheduleSocketOpening();
             }
             catch (IOException ex) {
                 Timber.wtf(ex);
@@ -122,6 +123,7 @@ public class uMQTTOutputService extends IntentService {
             Timber.e(e, "Could not handle publish transaction with broker");
             try {
                 mController.getSocket().close();
+                mController.scheduleSocketOpening();
             }
             catch (IOException ex) {
                 Timber.wtf(ex);
@@ -154,6 +156,7 @@ public class uMQTTOutputService extends IntentService {
             Timber.e(e, "Failed to send packet to broker.");
             try {
                 mController.getSocket().close();
+                mController.scheduleSocketOpening();
             }
             catch (IOException ex) {
                 Timber.wtf(ex);
@@ -178,6 +181,7 @@ public class uMQTTOutputService extends IntentService {
             Timber.e(e, "Socket connection is broken. Closing socket");
             try {
                 mController.getSocket().close();
+                mController.scheduleSocketOpening();
             }
             catch (IOException ex) {
                 Timber.wtf(ex);
@@ -212,6 +216,7 @@ public class uMQTTOutputService extends IntentService {
             Timber.e(e, "Could not send subscription packet for topic %s", topic);
             try {
                 mController.getSocket().close();
+                mController.scheduleSocketOpening();
             }
             catch (IOException ex) {
                 Timber.wtf(ex);
@@ -246,6 +251,7 @@ public class uMQTTOutputService extends IntentService {
             Timber.e(e, "Could not send subscription packets for %d topics", topics.length);
             try {
                 mController.getSocket().close();
+                mController.scheduleSocketOpening();
             }
             catch (IOException ex) {
                 Timber.wtf(ex);
@@ -271,6 +277,7 @@ public class uMQTTOutputService extends IntentService {
             Timber.e(e, "Could not send Ping to server");
             try {
                 mController.getSocket().close();
+                mController.scheduleSocketOpening();
             }
             catch (IOException ex) {
                 Timber.wtf(ex);

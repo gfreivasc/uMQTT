@@ -36,4 +36,5 @@ public class uMQTTSubscription {
     String getTopic() { return topic; }
     byte getRequestedQoSLevel() { return requestedQosLevel; }
     byte getGrantedQoSLevel() { return grantedQosLevel; }
+    OnReceivedPublish getPublishCallback() { return  publishCallback; };
 }
