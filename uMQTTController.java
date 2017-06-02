@@ -430,7 +430,7 @@ public class uMQTTController {
     }
 
     public void open() {
-        if (!mSocket.isClosed() && mSocket.isConnected()) {
+        if (!mSocket.isClosed() && mSocket.isConnected() && mConnectedToBroker) {
             Timber.w("uMQTT service already open");
             return;
         }
