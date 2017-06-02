@@ -71,6 +71,7 @@ public class uMQTTInputService {
                 }
             } catch (IOException e) {
                 Timber.e(e);
+                setListenerAwaiting();
                 uMQTTController.getInstance().scheduleSocketOpening();
             }
         }
