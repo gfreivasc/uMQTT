@@ -251,7 +251,7 @@ public class uMQTTController {
         for (Iterator<uMQTTSubscription> it = mSubscriptionsAwaitingResponse.iterator();
                 it.hasNext();) {
             uMQTTSubscription subscription = it.next();
-            if (subscription.getRequestPacketId() == packetId) {
+            if (subscription.getRequestPacketId() == packetId && i < grantedQoSLevels.length) {
                 subscription.setGrantedQosLevel(grantedQoSLevels[i++]);
                 Timber.v("Confirmed subscription to topic %s with QoS %d",
                         subscription.getTopic(), subscription.getGrantedQoSLevel());
