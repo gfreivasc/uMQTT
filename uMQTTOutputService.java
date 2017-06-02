@@ -176,12 +176,11 @@ public class uMQTTOutputService extends IntentService {
         }
         try {
             mController.getSocket().getOutputStream().write(frame.getPacket());
+            mController.getSocket().close();
         }
         catch (IOException e) {
-            Timber.e(e, "Socket connection is broken. Closing socket");
             try {
                 mController.getSocket().close();
-                mController.scheduleSocketOpening();
             }
             catch (IOException ex) {
                 Timber.wtf(ex);

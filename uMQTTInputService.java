@@ -65,14 +65,15 @@ public class uMQTTInputService {
                     int readSize = mInputStream.read(buffer, readOffset, readStepSize);
                     if (readSize > 0)
                         parseSocketInput(buffer, readSize);
-                    else if (readSize == -1) {
+                    else if (readSize == -1 && mRun) {
                         throw new IOException("Connection closed by broker.");
                     }
                 }
             } catch (IOException e) {
-                Timber.e(e);
-                setListenerAwaiting();
-                uMQTTController.getInstance().scheduleSocketOpening();
+                stop();
+                // If socket is closed, we closed it, no need to reopen
+                if (mRun || !uMQTTController.getInstance().getSocket().isClosed())
+                    uMQTTController.getInstance().scheduleSocketOpening();
             }
         }
     };

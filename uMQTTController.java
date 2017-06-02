@@ -124,6 +124,8 @@ public class uMQTTController {
         catch (IOException e) {
             Timber.e(e, "Could not close socket!");
         }
+
+        mJobManager.start();
         mJobManager.addJobInBackground(new NetworkJobService());
     }
 
@@ -428,7 +430,7 @@ public class uMQTTController {
     }
 
     public void open() {
-        if (!mSocket.isClosed() || mSocket.isConnected()) {
+        if (!mSocket.isClosed() && mSocket.isConnected()) {
             Timber.w("uMQTT service already open");
             return;
         }
@@ -437,15 +439,11 @@ public class uMQTTController {
     }
 
     public void close() {
-        sendDisconnect();
-        stopInputListener();
+        Timber.i("Closing MQTT connection.");
         mJobDispatcher.cancelAll();
-        try {
-            mSocket.close();
-        }
-        catch (IOException e) {
-            Timber.wtf(e);
-        }
+        mJobManager.stop();
+        stopInputListener();
+        sendDisconnect();
         mConnectedToBroker = false;
     }
 
