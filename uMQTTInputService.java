@@ -90,6 +90,7 @@ public class uMQTTInputService {
         mWaitingConnack = true;
         mTCPListenerThread = new Thread(mListener);
         mTCPListenerThread.start();
+        setListenerAwaiting();
         uMQTTController.getInstance().establishConnection();
     }
 
