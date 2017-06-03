@@ -249,7 +249,7 @@ public class uMQTTController {
     void setResponseToAwaitingSubscriptions(short packetId, byte[] grantedQoSLevels) {
         int i = 0;
         for (Iterator<uMQTTSubscription> it = mSubscriptionsAwaitingResponse.iterator();
-                it.hasNext();) {
+             it.hasNext();) {
             uMQTTSubscription subscription = it.next();
             if (subscription.getRequestPacketId() == packetId && i < grantedQoSLevels.length) {
                 subscription.setGrantedQosLevel(grantedQoSLevels[i++]);
@@ -323,6 +323,7 @@ public class uMQTTController {
     void advanceInboundTransaction(uMQTTPublish publish) {
         publish.transactionAdvance();
         if (publish.getQosLevel() == 0) return;
+
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
         if (mUnhandledPublishes == null) mUnhandledPublishes = new HashMap<>();
         mUnhandledPublishes.put(publish.getPacketId(), publish);
@@ -337,22 +338,26 @@ public class uMQTTController {
             Timber.v("Sending PUBREC for packet id %d", publish.getPacketId());
         }
         else return;
+
         mApplicationContext.startService(i);
     }
 
     void advanceInboundTransaction(short packetId) {
         uMQTTPublish publish = mUnhandledPublishes.get(packetId);
-        publish.transactionAdvance();
-        Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
-        i.setAction(ACTION_FORWARD_PUBLISH);
-        i.putExtra(EXTRA_PACKET_ID, packetId);
-        if (publish.getState() == uMQTTPublish.PUB_COMPLETED) {
-            i.putExtra(EXTRA_FRAME_TYPE, uMQTTFrame.MQ_PUBCOMP);
-        }
-        else return;
+        if(publish != null) {
+            publish.transactionAdvance();
+            Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
+            i.setAction(ACTION_FORWARD_PUBLISH);
+            i.putExtra(EXTRA_PACKET_ID, packetId);
+            if (publish.getState() == uMQTTPublish.PUB_COMPLETED) {
+                i.putExtra(EXTRA_FRAME_TYPE, uMQTTFrame.MQ_PUBCOMP);
+            } else return;
 
-        Timber.v("Sending PUBCOMP for packet id %d", packetId);
-        mApplicationContext.startService(i);
+            Timber.v("Sending PUBCOMP for packet id %d", packetId);
+            mApplicationContext.startService(i);
+        }else{
+            Timber.v("Publish is null");
+        }
     }
 
     public void unsubscribeFromTopic(String topic) {

@@ -26,7 +26,7 @@ public class uMQTTFrame {
     private byte[] payload;
     private short packetId;
 
-    private byte[] packet;
+    private byte[] packet = null;
 
     private static final String PROTOCOL = "MQTT";
     private static final byte MQTT_VERSION = 0b100;
@@ -55,21 +55,21 @@ public class uMQTTFrame {
     public @interface MQPacketType { }
 
     public static final byte MQ_RESERVED_BOT = 0,
-    MQ_CONNECT = 1,
-    MQ_CONNACK = 2,
-    MQ_PUBLISH = 3,
-    MQ_PUBACK = 4,
-    MQ_PUBREC = 5,
-    MQ_PUBREL = 6,
-    MQ_PUBCOMP = 7,
-    MQ_SUBSCRIBE = 8,
-    MQ_SUBACK = 9,
-    MQ_UNSUBSCRIBE = 10,
-    MQ_UNSUBACK = 11,
-    MQ_PINGREQ = 12,
-    MQ_PINGRESP = 13,
-    MQ_DISCONNECT = 14,
-    MQ_RESERVED_TOP = 15;
+            MQ_CONNECT = 1,
+            MQ_CONNACK = 2,
+            MQ_PUBLISH = 3,
+            MQ_PUBACK = 4,
+            MQ_PUBREC = 5,
+            MQ_PUBREL = 6,
+            MQ_PUBCOMP = 7,
+            MQ_SUBSCRIBE = 8,
+            MQ_SUBACK = 9,
+            MQ_UNSUBSCRIBE = 10,
+            MQ_UNSUBACK = 11,
+            MQ_PINGREQ = 12,
+            MQ_PINGRESP = 13,
+            MQ_DISCONNECT = 14,
+            MQ_RESERVED_TOP = 15;
 
     private uMQTTFrame() { }
 
@@ -425,7 +425,9 @@ public class uMQTTFrame {
     public short getPacketId() { return packetId; }
 
     public byte[] getPacket() {
-        if (this.packet != null) return this.packet;
+        if ((this.packet != null) && ((this.packet[0] != 0x00) && (this.packet[1] != 0x00))) {
+            return this.packet;
+        }
 
         ArrayList<Byte> packet = new ArrayList<>();
         packet.add(fixedHeader);
