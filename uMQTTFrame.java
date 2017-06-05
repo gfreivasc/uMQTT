@@ -419,10 +419,12 @@ public class uMQTTFrame {
         if (packetSequence.get() >= Short.MAX_VALUE)
             packetSequence.set(packetId = 1);
 
-        packetId = (short) packetSequence.getAndIncrement();
+        packetId = (short) (packetSequence.getAndIncrement() & 0x00FF);
     }
 
-    public short getPacketId() { return packetId; }
+    public short getPacketId() {
+        return packetId;
+    }
 
     public byte[] getPacket() {
         if ((this.packet != null) && ((this.packet[0] != 0x00) && (this.packet[1] != 0x00))) {
@@ -460,7 +462,7 @@ public class uMQTTFrame {
         return (firstByte >> 4);
     }
 
-    static int fetchBytes(byte msb, byte lsb) {
-        return ((msb << 8) + lsb) & 0xffff;
+    static short fetchBytes(byte msb, byte lsb) {
+        return (short) ((msb << 8) | (lsb & 0b0000000011111111));
     }
 }

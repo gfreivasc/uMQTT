@@ -83,15 +83,17 @@ public class uMQTTOutputService extends IntentService {
     }
 
     private void publish(short packetId) {
-        if (packetId == 0) {
-            throw new IllegalArgumentException("Problem handling packet ID");
-        }
+        //if (packetId == 0) {
+        //    throw new IllegalArgumentException("Problem handling packet ID");
+        //}
 
         try {
             byte[] packet = mController.getPacket(packetId);
-            if (((packet[0] >> 1) & 0b11) == 0b00)
-                mController.sentQoS0Packet(packetId);
-            mController.getSocket().getOutputStream().write(packet);
+            if(packet != null) {
+                if (((packet[0] >> 1) & 0b11) == 0b00)
+                    mController.sentQoS0Packet(packetId);
+                mController.getSocket().getOutputStream().write(packet);
+            }
         }
         catch (IOException e) {
             Timber.e(e, "Could not send publish to broker.");
@@ -106,8 +108,8 @@ public class uMQTTOutputService extends IntentService {
     }
 
     private void handlePublishTransaction(@uMQTTFrame.MQPacketType int type, short packetId) {
-        if (type == 0 || packetId == 0)
-            throw new IllegalArgumentException("Problem handling publish transaction");
+        //if (type == 0 || packetId == 0)
+            //throw new IllegalArgumentException("Problem handling publish transaction");
 
         uMQTTFrame frame;
         try {

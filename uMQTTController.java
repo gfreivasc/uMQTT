@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.config.Configuration;
@@ -22,10 +23,18 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
+import io.realm.Realm;
+import io.realm.RealmQuery;
+import io.realm.RealmResults;
+import re.usto.message.controller.MessageController;
+import re.usto.net.UMQTTController;
 import re.usto.umqtt.utils.NetworkJobService;
 import re.usto.umqtt.utils.PingService;
+import re.usto.utils.Group;
+import re.usto.utils.MaluhiaApplication;
 import timber.log.Timber;
 
 /**
@@ -152,21 +161,12 @@ public class uMQTTController {
         mConnectedToBroker = true;
         startKeepAliveMechanism();
 
-        if (mSubscriptionFrames != null) {
-            String[] topics = new String[mSubscriptionFrames.size()];
-            byte[] qosLevels = new byte[mSubscriptionFrames.size()];
+        MessageController.getInstance().publishing = false;
 
-            for (int j = 0; j < mSubscriptionFrames.size(); ++j) {
-                topics[j] = mSubscriptionFrames.get(j).getTopic();
-                qosLevels[j] = mSubscriptionFrames.get(j).getRequestedQoSLevel();
-            }
+        UMQTTController.getInstance(MaluhiaApplication.getContext()).addSubscription("inbox/"+mClientId);
+        UMQTTController.getInstance(MaluhiaApplication.getContext()).addSubscription("inbox/control");
 
-            Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
-            i.setAction(ACTION_SUBSCRIBE);
-            i.putExtra(EXTRA_TOPICS, topics);
-            i.putExtra(EXTRA_TOPICS_QOS, qosLevels);
-            mApplicationContext.startService(i);
-        }
+        subscribeToGroups();
 
         if (mUnsentPublishes != null) {
             Iterator<Map.Entry<Short, uMQTTPublish>> iterator =
@@ -176,6 +176,24 @@ public class uMQTTController {
             }
         }
     }
+
+    private void subscribeToGroups(){
+        Realm realm = Realm.getDefaultInstance();
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                RealmResults<Group> result = realm.where(Group.class).findAll();
+                if(!result.isEmpty()) {
+                    for(Group group : result) {
+                        Log.d("USTORE", "SUBSCRIBE GROUP " + group.gid);
+                        UMQTTController.getInstance(MaluhiaApplication.getContext()).addSubscription("inbox/group/"+group.gid);
+                    }
+                }
+            }
+        });
+        realm.close();
+    }
+
 
     private void startInputListener(InputStream inputStream) {
         mInputService = uMQTTInputService.getInstance();
@@ -303,7 +321,11 @@ public class uMQTTController {
     }
 
     byte[] getPacket(short packetId) {
-        return mUnsentPublishes.get(packetId).getPacket();
+        if (mUnsentPublishes.get(packetId) != null){
+            return mUnsentPublishes.get(packetId).getPacket();
+        }else{
+            return null;
+        }
     }
 
     void advanceOutboundTransaction(short packetId) {

@@ -30,7 +30,9 @@ public abstract class uMQTTPublisher {
     private static final String JOB_PUBLISH_PACKET_ID = "pubPacketId";
     private static final String JOB_PUBLISH = "pubJob";
 
-    private String buildJobTag(short packetId) { return JOB_PUBLISH + packetId; }
+    private String buildJobTag(short packetId) {
+        return JOB_PUBLISH + packetId;
+    }
 
     protected uMQTTPublisher(String topic, byte qosLevel) {
         this.topic = topic;
@@ -38,7 +40,7 @@ public abstract class uMQTTPublisher {
         mPublishManager = new JobManager(
                 new Configuration.Builder(uMQTTController.getInstance().getApplicationContext())
                         .minConsumerCount(1)
-                        .maxConsumerCount(3)
+                        .maxConsumerCount(1)
                         .loadFactor(5)
                         .build());
         mPublishJobs = new ArrayList<>();
@@ -55,6 +57,8 @@ public abstract class uMQTTPublisher {
             mPublishManager.addJobInBackground(new PublishJob(packetId));
         }
         else {
+            packetId = publish.getPacketId();
+            mPublishJobs.add(buildJobTag(packetId));
             uMQTTController.getInstance().addPublish(publish);
         }
         return packetId;

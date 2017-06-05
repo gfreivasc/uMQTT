@@ -5,6 +5,7 @@ import android.support.annotation.IntDef;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
+import re.usto.message.controller.MessageController;
 import timber.log.Timber;
 
 /**
@@ -89,7 +90,7 @@ public class uMQTTPublish {
         i += this.topic.length();
 
         if (this.qosLevel != 0) {
-            this.packetId = (short) uMQTTFrame.fetchBytes(packet[i], packet[i + 1]);
+            this.packetId =  uMQTTFrame.fetchBytes(packet[i], packet[i + 1]);
             i += 2;
         }
 
@@ -116,6 +117,7 @@ public class uMQTTPublish {
             case PUB_PUBLISHED:
                 if (qosLevel == 1) {
                     pubState = PUB_COMPLETED;
+                    MessageController.getInstance().notifyPuback(packetId);
                     if (!inbound) publisher.completePublish(packetId);
                     else uMQTTController.getInstance().publishCallback(topic, message);
                 } else pubState = PUB_RECEIVED;
@@ -144,7 +146,9 @@ public class uMQTTPublish {
     }
 
     short getPacketId() {
-        if (packetId == 0) packetId = frame.getPacketId();
+        if (packetId == 0) {
+            return 0;
+        }
         return packetId;
     }
 
