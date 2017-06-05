@@ -322,6 +322,7 @@ public class uMQTT {
     }
 
     void advanceOutboundTransaction(short packetId) {
+        Timber.v("Acknowledged publish id #%d", packetId);
         uMQTTPublish publish = mUnsentPublishes.get(packetId);
         if (publish == null) return;
         publish.transactionAdvance();
