@@ -31,7 +31,8 @@ public class uMQTTFrame {
     private static final String PROTOCOL = "MQTT";
     private static final byte MQTT_VERSION = 0b100;
     private static final int CONNECT_VARIABLE_HEADER_BASE_SIZE = 6;
-    private static AtomicInteger packetSequence = new AtomicInteger(1);
+    private static AtomicInteger packetSequence = new AtomicInteger(
+            uMQTT.getInstance().getTopPacketId());
 
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({
@@ -417,9 +418,9 @@ public class uMQTTFrame {
 
     private void setPacketId() {
         if (packetSequence.get() >= Short.MAX_VALUE)
-            packetSequence.set(packetId = uMQTT.getInstance().getTopPacketId());
+            packetSequence.set(packetId = 1);
 
-        packetId = (short) (packetSequence.getAndIncrement() & 0x00FF);
+        packetId = (short) (packetSequence.getAndIncrement() & 0xffff);
         uMQTT.getInstance().updateTopPacketId(packetId);
     }
 

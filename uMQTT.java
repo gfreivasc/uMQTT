@@ -341,7 +341,12 @@ public class uMQTT {
 
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
         if (mUnhandledPublishes == null) mUnhandledPublishes = new HashMap<>();
-        mUnhandledPublishes.put(publish.getPacketId(), publish);
+        try {
+            mUnhandledPublishes.put(publish.getPacketId(), publish);
+        }
+        catch (NullPointerException e) {
+            Timber.v("Dropping...");
+        }
         i.setAction(ACTION_FORWARD_PUBLISH);
         i.putExtra(EXTRA_PACKET_ID, publish.getPacketId());
         if (publish.getQosLevel() == 0b01) {
@@ -473,14 +478,16 @@ public class uMQTT {
     }
 
     short getTopPacketId() {
-        SharedPreferences sp = mApplicationContext.getSharedPreferences(PREFS_FILE, 0);
+        SharedPreferences sp = mApplicationContext.getSharedPreferences(PREFS_FILE,
+                Context.MODE_PRIVATE);
         return (short)(sp.getInt(PREF_PACKET_ID, 1) & 0xffff);
     }
 
     void updateTopPacketId(short packetId) {
-        SharedPreferences sp = mApplicationContext.getSharedPreferences(PREFS_FILE, 0);
+        SharedPreferences sp = mApplicationContext.getSharedPreferences(PREFS_FILE,
+                Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sp.edit();
         editor.putInt(PREF_PACKET_ID, packetId & 0xffff);
-        editor.apply();
+        editor.commit();
     }
 }
