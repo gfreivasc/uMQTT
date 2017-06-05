@@ -6,12 +6,8 @@ import android.support.annotation.Nullable;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.RetryConstraint;
-import com.firebase.jobdispatcher.JobParameters;
-import com.firebase.jobdispatcher.JobService;
 
-import java.io.IOException;
-
-import re.usto.umqtt.uMQTTController;
+import re.usto.umqtt.uMQTT;
 import timber.log.Timber;
 
 /**
@@ -33,7 +29,7 @@ public class NetworkJobService extends Job {
 
     @Override
     public void onRun() throws Throwable {
-        uMQTTController.getInstance().openSocket();
+        uMQTT.getInstance().openSocket();
     }
 
     @Override

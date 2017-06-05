@@ -38,7 +38,7 @@ public abstract class uMQTTPublisher {
         this.topic = topic;
         this.qosLevel = qosLevel;
         mPublishManager = new JobManager(
-                new Configuration.Builder(uMQTTController.getInstance().getApplicationContext())
+                new Configuration.Builder(uMQTT.getInstance().getApplicationContext())
                         .minConsumerCount(1)
                         .maxConsumerCount(1)
                         .loadFactor(5)
@@ -59,7 +59,7 @@ public abstract class uMQTTPublisher {
         else {
             packetId = publish.getPacketId();
             mPublishJobs.add(buildJobTag(packetId));
-            uMQTTController.getInstance().addPublish(publish);
+            uMQTT.getInstance().addPublish(publish);
         }
         return packetId;
     }
@@ -85,7 +85,7 @@ public abstract class uMQTTPublisher {
         public void onRun() throws Throwable {
             uMQTTPublish publish = mPublishes.get(mPacketId);
             if (publish == null) return;
-            uMQTTController.getInstance().addPublish(publish);
+            uMQTT.getInstance().addPublish(publish);
         }
 
         @Override

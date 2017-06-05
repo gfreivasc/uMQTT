@@ -119,14 +119,14 @@ public class uMQTTPublish {
                     pubState = PUB_COMPLETED;
                     MessageController.getInstance().notifyPuback(packetId);
                     if (!inbound) publisher.completePublish(packetId);
-                    else uMQTTController.getInstance().publishCallback(topic, message);
+                    else uMQTT.getInstance().publishCallback(topic, message);
                 } else pubState = PUB_RECEIVED;
                 break;
             case PUB_RECEIVED:
             case PUB_RELEASED:
                 pubState = PUB_COMPLETED;
                 if (!inbound) publisher.completePublish(packetId);
-                else uMQTTController.getInstance().publishCallback(topic, message);
+                else uMQTT.getInstance().publishCallback(topic, message);
                 break;
             case PUB_COMPLETED:
                 break;
@@ -147,7 +147,7 @@ public class uMQTTPublish {
 
     short getPacketId() {
         if (packetId == 0) {
-            return 0;
+            return frame.getPacketId();
         }
         return packetId;
     }

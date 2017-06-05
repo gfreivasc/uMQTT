@@ -417,7 +417,7 @@ public class uMQTTFrame {
 
     private void setPacketId() {
         if (packetSequence.get() >= Short.MAX_VALUE)
-            packetSequence.set(packetId = 1);
+            packetSequence.set(packetId = uMQTT.getInstance().getTopPacketId());
 
         packetId = (short) (packetSequence.getAndIncrement() & 0x00FF);
     }

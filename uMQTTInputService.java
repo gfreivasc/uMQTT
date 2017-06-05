@@ -71,8 +71,8 @@ public class uMQTTInputService {
                 }
             } catch (IOException e) {
                 // If socket is closed, we closed it, no need to reopen
-                if (mRun || !uMQTTController.getInstance().getSocket().isClosed()) {
-                    uMQTTController.getInstance().scheduleSocketOpening();
+                if (mRun || !uMQTT.getInstance().getSocket().isClosed()) {
+                    uMQTT.getInstance().scheduleSocketOpening();
                 }
                 stop();
             }
@@ -92,7 +92,7 @@ public class uMQTTInputService {
         mTCPListenerThread = new Thread(mListener);
         mTCPListenerThread.start();
         setListenerAwaiting();
-        uMQTTController.getInstance().establishConnection();
+        uMQTT.getInstance().establishConnection();
     }
 
     void stop() {
@@ -189,25 +189,25 @@ public class uMQTTInputService {
 
     private void handleUnsuback(byte msb, byte lsb) {
         short packetId = (short)(msb * 0xff + lsb);
-        uMQTTController.getInstance().removeSubscriptions(packetId);
+        uMQTT.getInstance().removeSubscriptions(packetId);
     }
 
     private void handleOutboundQoS(int type, byte[] message) {
         short packetId = (short)(message[2] * 0xff + message[3]);
-        uMQTTController.getInstance().advanceOutboundTransaction(packetId);
+        uMQTT.getInstance().advanceOutboundTransaction(packetId);
     }
 
     private void handleInboundQoS(int type, byte[] message) {
         if (type == uMQTTFrame.MQ_PUBLISH) {
             uMQTTPublish publish = new uMQTTPublish(message);
 
-            uMQTTController.getInstance().advanceInboundTransaction(
+            uMQTT.getInstance().advanceInboundTransaction(
                     publish
             );
         }
         else {
             short packetId = (short)(message[2] * 0xff + message[3]);
-            uMQTTController.getInstance().advanceInboundTransaction(packetId);
+            uMQTT.getInstance().advanceInboundTransaction(packetId);
         }
     }
 
@@ -219,7 +219,7 @@ public class uMQTTInputService {
         switch (returnCode) {
             case 0:
                 Timber.d("Connection accepted by broker");
-                uMQTTController.getInstance().connectionEstablished();
+                uMQTT.getInstance().connectionEstablished();
                 break;
             case 1:
                 Timber.d("Connection refused: unacceptable protocol version");
@@ -246,7 +246,7 @@ public class uMQTTInputService {
     private void handleSuback(byte[] message, int size) {
         short packetId = (short)uMQTTFrame.fetchBytes(message[2], message[3]);
 
-        uMQTTController.getInstance()
+        uMQTT.getInstance()
                 .setResponseToAwaitingSubscriptions(
                         packetId,
                         Arrays.copyOfRange(message, 4, size));

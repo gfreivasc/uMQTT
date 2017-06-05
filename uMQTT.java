@@ -2,8 +2,7 @@ package re.usto.umqtt;
 
 import android.content.Context;
 import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
+import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -23,11 +22,9 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import io.realm.Realm;
-import io.realm.RealmQuery;
 import io.realm.RealmResults;
 import re.usto.message.controller.MessageController;
 import re.usto.net.UMQTTController;
@@ -41,9 +38,9 @@ import timber.log.Timber;
  * @author gabriel
  */
 
-public class uMQTTController {
+public class uMQTT {
 
-    private static uMQTTController mInstance;
+    private static uMQTT mInstance;
     private static Context mApplicationContext;
     private uMQTTInputService mInputService;
     private FirebaseJobDispatcher mJobDispatcher;
@@ -56,32 +53,30 @@ public class uMQTTController {
     private ArrayList<uMQTTSubscription> mSubscriptionsAwaitingResponse;
     private ArrayList<uMQTTSubscription> mSubscriptionFrames;
     private boolean mConnectedToBroker = false;
-    private String mClientId;
-    private String mServerAddress;
-    private int mServerPort;
+    private uMQTTConfiguration mConfiguration;
 
     private static final String JS_PING_JOB = "pingJob";
 
     static final String ACTION_CONNECT =
-            "re.usto.maluhia.CONNECT";
+            "re.usto.umqtt.CONNECT";
 
     static final String ACTION_DISCONNECT =
-            "re.usto.maluhia.DISCONNECT";
+            "re.usto.umqtt.DISCONNECT";
 
     static final String ACTION_SUBSCRIBE =
-            "re.usto.maluhia.SUBSCRIBE";
+            "re.usto.umqtt.SUBSCRIBE";
 
     static final String ACTION_UNSUBSCRIBE =
-            "re.usto.maluhia.UNSUBSCRIBE";
+            "re.usto.umqtt.UNSUBSCRIBE";
 
     static final String ACTION_PING =
-            "re.usto.maluhia.PING";
+            "re.usto.umqtt.PING";
 
     static final String ACTION_PUBLISH =
-            "re.usto.maluhia.PUBLISH";
+            "re.usto.umqtt.PUBLISH";
 
     static final String ACTION_FORWARD_PUBLISH =
-            "re.usto.maluhia.FORWARD_PUBLISH";
+            "re.usto.umqtt.FORWARD_PUBLISH";
 
     static final String EXTRA_CLIENT_ID = "extraClientId";
     static final String EXTRA_TOPIC = "extraTopic";
@@ -91,21 +86,22 @@ public class uMQTTController {
     static final String EXTRA_PACKET_ID = "extraPacketId";
     static final String EXTRA_FRAME_TYPE = "extraPacketType";
 
+    private static final String PREFS_FILE = "re.usto.umqtt.PREFS";
+    private static final String PREF_PACKET_ID = "re.usto.umqtt.PACKET_ID";
+
     static final int DEFAULT_KEEP_ALIVE = 180;
 
-    private uMQTTController(Context context, String client, String serverAddress, int port) {
+    private uMQTT(Context context, uMQTTConfiguration configuration) {
         mApplicationContext = context.getApplicationContext();
         mJobDispatcher = new FirebaseJobDispatcher(new GooglePlayDriver(context));
         mJobManager = new JobManager(
                 new Configuration.Builder(context).build()
         );
-        mClientId = client;
-        mServerAddress = serverAddress;
-        mServerPort = port;
+        mConfiguration = configuration;
         scheduleSocketOpening();
     }
 
-    public static uMQTTController getInstance() {
+    public static uMQTT getInstance() {
         if (mInstance == null) {
             throw new IllegalStateException(
                     "Calling getInstance before initializing controller!");
@@ -114,12 +110,12 @@ public class uMQTTController {
     }
 
     public static void init(@NonNull Context context,
-                            String client, String serverAddress, int port) {
+                            @NonNull uMQTTConfiguration configuration) {
         if (mInstance != null) {
             throw new IllegalStateException(
                     "Cannot initialize controller twice!");
         }
-        mInstance = new uMQTTController(context, client, serverAddress, port);
+        mInstance = new uMQTT(context, configuration);
     }
 
     Context getApplicationContext() {
@@ -140,7 +136,7 @@ public class uMQTTController {
 
     public void openSocket() throws IOException {
         mConnectedToBroker = false;
-        mSocket = new Socket(mServerAddress, mServerPort);
+        mSocket = new Socket(mConfiguration.getBrokerIp(), mConfiguration.getBrokerPort());
         if (mSocket.isConnected())
             startInputListener(mSocket.getInputStream());
         else throw new IOException("Could not connect to broker");
@@ -153,7 +149,7 @@ public class uMQTTController {
     void establishConnection() {
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
         i.setAction(ACTION_CONNECT);
-        i.putExtra(EXTRA_CLIENT_ID, mClientId);
+        i.putExtra(EXTRA_CLIENT_ID, mConfiguration.getClientId());
         mApplicationContext.startService(i);
     }
 
@@ -163,7 +159,8 @@ public class uMQTTController {
 
         MessageController.getInstance().publishing = false;
 
-        UMQTTController.getInstance(MaluhiaApplication.getContext()).addSubscription("inbox/"+mClientId);
+        // TODO: DELET THIS
+        UMQTTController.getInstance(MaluhiaApplication.getContext()).addSubscription("inbox/"+mConfiguration.getClientId());
         UMQTTController.getInstance(MaluhiaApplication.getContext()).addSubscription("inbox/control");
 
         subscribeToGroups();
@@ -175,8 +172,12 @@ public class uMQTTController {
                 addPublish(iterator.next().getValue());
             }
         }
+
+        if (mConfiguration.hasConnectionCallback())
+            mConfiguration.connectionEstablished();
     }
 
+    // TODO:
     private void subscribeToGroups(){
         Realm realm = Realm.getDefaultInstance();
         realm.executeTransaction(new Realm.Transaction() {
@@ -289,7 +290,8 @@ public class uMQTTController {
                 .setRecurring(true)
                 .setReplaceCurrent(true)
                 .setTrigger(Trigger.executionWindow(
-                        DEFAULT_KEEP_ALIVE - 10, DEFAULT_KEEP_ALIVE))
+                        DEFAULT_KEEP_ALIVE - DEFAULT_KEEP_ALIVE/10,
+                        DEFAULT_KEEP_ALIVE - DEFAULT_KEEP_ALIVE/20))
                 .build();
 
         mJobDispatcher.mustSchedule(pingJob);
@@ -477,5 +479,17 @@ public class uMQTTController {
 
     public boolean isConnected() {
         return mConnectedToBroker;
+    }
+
+    short getTopPacketId() {
+        SharedPreferences sp = mApplicationContext.getSharedPreferences(PREFS_FILE, 0);
+        return (short)(sp.getInt(PREF_PACKET_ID, 1) & 0xffff);
+    }
+
+    void updateTopPacketId(short packetId) {
+        SharedPreferences sp = mApplicationContext.getSharedPreferences(PREFS_FILE, 0);
+        SharedPreferences.Editor editor = sp.edit();
+        editor.putInt(PREF_PACKET_ID, packetId & 0xffff);
+        editor.apply();
     }
 }

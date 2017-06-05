@@ -2,7 +2,7 @@ package re.usto.umqtt.utils;
 
 import com.firebase.jobdispatcher.JobParameters;
 import com.firebase.jobdispatcher.JobService;
-import re.usto.umqtt.uMQTTController;
+import re.usto.umqtt.uMQTT;
 
 /**
  * @author gabriel
@@ -12,7 +12,7 @@ public class PingService extends JobService {
 
     @Override
     public boolean onStartJob(JobParameters jobParameters) {
-        uMQTTController.getInstance().sendPing();
+        uMQTT.getInstance().sendPing();
         return false;
     }
 

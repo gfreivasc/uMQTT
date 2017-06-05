@@ -5,8 +5,6 @@ import android.content.Intent;
 import android.support.annotation.Nullable;
 
 import java.io.IOException;
-import java.net.Socket;
-import java.net.SocketException;
 
 import timber.log.Timber;
 
@@ -16,7 +14,7 @@ import timber.log.Timber;
 
 public class uMQTTOutputService extends IntentService {
 
-    private uMQTTController mController = uMQTTController.getInstance();
+    private uMQTT mController = uMQTT.getInstance();
 
     public uMQTTOutputService() {
         super(uMQTTOutputService.class.getSimpleName());
@@ -30,54 +28,54 @@ public class uMQTTOutputService extends IntentService {
         }
 
         switch (intent.getAction()) {
-            case uMQTTController.ACTION_CONNECT:
-                if (!intent.hasExtra(uMQTTController.EXTRA_CLIENT_ID))
+            case uMQTT.ACTION_CONNECT:
+                if (!intent.hasExtra(uMQTT.EXTRA_CLIENT_ID))
                     throw new UnsupportedOperationException("Missing client ID");
-                connect(intent.getStringExtra(uMQTTController.EXTRA_CLIENT_ID));
+                connect(intent.getStringExtra(uMQTT.EXTRA_CLIENT_ID));
                 break;
-            case uMQTTController.ACTION_DISCONNECT:
+            case uMQTT.ACTION_DISCONNECT:
                 disconnect();
                 break;
-            case uMQTTController.ACTION_SUBSCRIBE:
-                if ((!intent.hasExtra(uMQTTController.EXTRA_TOPIC)
-                        || !intent.hasExtra(uMQTTController.EXTRA_TOPIC_QOS))
-                        && (!intent.hasExtra(uMQTTController.EXTRA_TOPICS)
-                        || !intent.hasExtra(uMQTTController.EXTRA_TOPICS_QOS)))
+            case uMQTT.ACTION_SUBSCRIBE:
+                if ((!intent.hasExtra(uMQTT.EXTRA_TOPIC)
+                        || !intent.hasExtra(uMQTT.EXTRA_TOPIC_QOS))
+                        && (!intent.hasExtra(uMQTT.EXTRA_TOPICS)
+                        || !intent.hasExtra(uMQTT.EXTRA_TOPICS_QOS)))
                     throw new UnsupportedOperationException("Missing subscription info");
 
-                if (intent.hasExtra(uMQTTController.EXTRA_TOPIC))
-                    subscribe(intent.getStringExtra(uMQTTController.EXTRA_TOPIC),
-                            intent.getByteExtra(uMQTTController.EXTRA_TOPIC_QOS, (byte) 0b00),
+                if (intent.hasExtra(uMQTT.EXTRA_TOPIC))
+                    subscribe(intent.getStringExtra(uMQTT.EXTRA_TOPIC),
+                            intent.getByteExtra(uMQTT.EXTRA_TOPIC_QOS, (byte) 0b00),
                             false);
                 else
-                    subscribe(intent.getStringArrayExtra(uMQTTController.EXTRA_TOPICS),
-                            intent.getByteArrayExtra(uMQTTController.EXTRA_TOPICS_QOS),
+                    subscribe(intent.getStringArrayExtra(uMQTT.EXTRA_TOPICS),
+                            intent.getByteArrayExtra(uMQTT.EXTRA_TOPICS_QOS),
                             false);
                 break;
-            case uMQTTController.ACTION_UNSUBSCRIBE:
-                if (!intent.hasExtra(uMQTTController.EXTRA_TOPIC)
-                        && !intent.hasExtra(uMQTTController.EXTRA_TOPICS))
+            case uMQTT.ACTION_UNSUBSCRIBE:
+                if (!intent.hasExtra(uMQTT.EXTRA_TOPIC)
+                        && !intent.hasExtra(uMQTT.EXTRA_TOPICS))
                     throw new UnsupportedOperationException("Missing unsubscription topics");
 
-                if (intent.hasExtra(uMQTTController.EXTRA_TOPIC))
-                    subscribe(intent.getStringExtra(uMQTTController.EXTRA_TOPIC), (byte) 0b01,
+                if (intent.hasExtra(uMQTT.EXTRA_TOPIC))
+                    subscribe(intent.getStringExtra(uMQTT.EXTRA_TOPIC), (byte) 0b01,
                             true);
                 else {
-                    String[] topics = intent.getStringArrayExtra(uMQTTController.EXTRA_TOPICS);
+                    String[] topics = intent.getStringArrayExtra(uMQTT.EXTRA_TOPICS);
                     byte[] placeHolder = new byte[topics.length];
                     subscribe(topics, placeHolder, true);
                 }
                 break;
-            case uMQTTController.ACTION_PING:
+            case uMQTT.ACTION_PING:
                 pingreq();
                 break;
-            case uMQTTController.ACTION_PUBLISH:
-                publish(intent.getShortExtra(uMQTTController.EXTRA_PACKET_ID, (short) 0));
+            case uMQTT.ACTION_PUBLISH:
+                publish(intent.getShortExtra(uMQTT.EXTRA_PACKET_ID, (short) 0));
                 break;
-            case uMQTTController.ACTION_FORWARD_PUBLISH:
+            case uMQTT.ACTION_FORWARD_PUBLISH:
                 handlePublishTransaction(
-                        intent.getByteExtra(uMQTTController.EXTRA_FRAME_TYPE, (byte) 0),
-                        intent.getShortExtra(uMQTTController.EXTRA_PACKET_ID, (short) 0)
+                        intent.getByteExtra(uMQTT.EXTRA_FRAME_TYPE, (byte) 0),
+                        intent.getShortExtra(uMQTT.EXTRA_PACKET_ID, (short) 0)
                 );
         }
     }
@@ -143,7 +141,7 @@ public class uMQTTOutputService extends IntentService {
                         .setWillMessage("Disconnect")
                         .setWillTopic("a/b")
                         .setWillQoS(0b01)
-                        .setKeepAlive((short)uMQTTController.DEFAULT_KEEP_ALIVE)
+                        .setKeepAlive((short) uMQTT.DEFAULT_KEEP_ALIVE)
                         .build();
             }
             catch (BrokenMQTTFrameException e) {
