@@ -157,13 +157,21 @@ public class uMQTT {
         mConnectedToBroker = true;
         startKeepAliveMechanism();
 
-        MessageController.getInstance().publishing = false;
+        if (mSubscriptionFrames != null) {
+            String[] topics = new String[mSubscriptionFrames.size()];
+            byte[] qosLevels = new byte[mSubscriptionFrames.size()];
 
-        // TODO: DELET THIS
-        UMQTTController.getInstance(MaluhiaApplication.getContext()).addSubscription("inbox/"+mConfiguration.getClientId());
-        UMQTTController.getInstance(MaluhiaApplication.getContext()).addSubscription("inbox/control");
+            for (int j = 0; j < mSubscriptionFrames.size(); ++j) {
+                topics[j] = mSubscriptionFrames.get(j).getTopic();
+                qosLevels[j] = mSubscriptionFrames.get(j).getRequestedQoSLevel();
+            }
 
-        subscribeToGroups();
+            Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
+            i.setAction(ACTION_SUBSCRIBE);
+            i.putExtra(EXTRA_TOPICS, topics);
+            i.putExtra(EXTRA_TOPICS_QOS, qosLevels);
+            mApplicationContext.startService(i);
+        }
 
         if (mUnsentPublishes != null) {
             Iterator<Map.Entry<Short, uMQTTPublish>> iterator =
@@ -176,25 +184,6 @@ public class uMQTT {
         if (mConfiguration.hasConnectionCallback())
             mConfiguration.connectionEstablished();
     }
-
-    // TODO:
-    private void subscribeToGroups(){
-        Realm realm = Realm.getDefaultInstance();
-        realm.executeTransaction(new Realm.Transaction() {
-            @Override
-            public void execute(Realm realm) {
-                RealmResults<Group> result = realm.where(Group.class).findAll();
-                if(!result.isEmpty()) {
-                    for(Group group : result) {
-                        Log.d("USTORE", "SUBSCRIBE GROUP " + group.gid);
-                        UMQTTController.getInstance(MaluhiaApplication.getContext()).addSubscription("inbox/group/"+group.gid);
-                    }
-                }
-            }
-        });
-        realm.close();
-    }
-
 
     private void startInputListener(InputStream inputStream) {
         mInputService = uMQTTInputService.getInstance();

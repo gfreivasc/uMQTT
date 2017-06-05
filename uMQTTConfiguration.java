@@ -11,7 +11,7 @@ public class uMQTTConfiguration {
     private int brokerPort;
 
     // Callback is called when we receive a connack from the broker
-    interface OnConnectionEstablishedListener {
+    public interface OnConnectionEstablishedListener {
         void onConnectionEstablished();
 
     }
