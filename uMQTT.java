@@ -304,7 +304,9 @@ public class uMQTT {
     }
 
     void addPublish(uMQTTPublish publish) {
-        if (mUnsentPublishes == null) mUnsentPublishes = new HashMap<>();
+        if (mUnsentPublishes == null) {
+            mUnsentPublishes = new HashMap<>();
+        }
         mUnsentPublishes.put(publish.getPacketId(), publish);
         if (mConnectedToBroker) {
             Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
