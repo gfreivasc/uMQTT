@@ -23,11 +23,9 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import io.realm.Realm;
-import io.realm.RealmQuery;
 import io.realm.RealmResults;
 import re.usto.message.controller.MessageController;
 import re.usto.net.UMQTTController;
@@ -302,7 +300,9 @@ public class uMQTTController {
     }
 
     void addPublish(uMQTTPublish publish) {
-        if (mUnsentPublishes == null) mUnsentPublishes = new HashMap<>();
+        if (mUnsentPublishes == null) {
+            mUnsentPublishes = new HashMap<>();
+        }
         mUnsentPublishes.put(publish.getPacketId(), publish);
         if (mConnectedToBroker) {
             Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);

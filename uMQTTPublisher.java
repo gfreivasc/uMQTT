@@ -47,9 +47,16 @@ public abstract class uMQTTPublisher {
         mPublishes = new HashMap<>();
     }
 
+    public short preparePublish(String message){
+        uMQTTPublish publish = new uMQTTPublish(topic, message, qosLevel, this);
+        return publish.getPacketId();
+    }
+
     public short publish(String message) {
         uMQTTPublish publish = new uMQTTPublish(topic, message, qosLevel, this);
-        short packetId = 0;
+
+        short packetId;
+
         if (publish.getQosLevel() > 0) {
             packetId = publish.getPacketId();
             mPublishes.put(publish.getPacketId(), publish);
