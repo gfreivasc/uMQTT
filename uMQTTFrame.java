@@ -420,6 +420,7 @@ public class uMQTTFrame {
             packetSequence.set(packetId = uMQTT.getInstance().getTopPacketId());
 
         packetId = (short) (packetSequence.getAndIncrement() & 0x00FF);
+        uMQTT.getInstance().updateTopPacketId(packetId);
     }
 
     public short getPacketId() {
