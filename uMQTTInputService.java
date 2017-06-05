@@ -71,10 +71,8 @@ public class uMQTTInputService {
                 }
             } catch (IOException e) {
                 // If socket is closed, we closed it, no need to reopen
-                if (mRun || !uMQTT.getInstance().getSocket().isClosed()) {
-                    uMQTT.getInstance().scheduleSocketOpening();
-                }
                 stop();
+                uMQTT.getInstance().scheduleSocketOpening();
             }
         }
     };
