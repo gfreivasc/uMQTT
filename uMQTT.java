@@ -346,6 +346,7 @@ public class uMQTT {
         }
         catch (NullPointerException e) {
             Timber.v("Dropping...");
+            return;
         }
         i.setAction(ACTION_FORWARD_PUBLISH);
         i.putExtra(EXTRA_PACKET_ID, publish.getPacketId());
