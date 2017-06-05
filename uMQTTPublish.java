@@ -111,21 +111,20 @@ public class uMQTTPublish {
             case PUB_PUBLISHING:
                 if (qosLevel == 0) {
                     pubState = PUB_COMPLETED;
-                    publisher.completePublish(packetId);
+                    publisher.completePublish(getPacketId());
                 } else pubState = PUB_PUBLISHED;
                 break;
             case PUB_PUBLISHED:
                 if (qosLevel == 1) {
                     pubState = PUB_COMPLETED;
-                    MessageController.getInstance().notifyPuback(packetId);
-                    if (!inbound) publisher.completePublish(packetId);
+                    if (!inbound) publisher.completePublish(getPacketId());
                     else uMQTT.getInstance().publishCallback(topic, message);
                 } else pubState = PUB_RECEIVED;
                 break;
             case PUB_RECEIVED:
             case PUB_RELEASED:
                 pubState = PUB_COMPLETED;
-                if (!inbound) publisher.completePublish(packetId);
+                if (!inbound) publisher.completePublish(getPacketId());
                 else uMQTT.getInstance().publishCallback(topic, message);
                 break;
             case PUB_COMPLETED:
