@@ -169,7 +169,7 @@ public class uMQTT {
             Iterator<Map.Entry<Short, uMQTTPublish>> iterator =
                     mUnsentPublishes.entrySet().iterator();
             while (iterator.hasNext()) {
-                addPublish(iterator.next().getValue());
+                sendPublish(iterator.next().getValue());
             }
         }
 
@@ -289,14 +289,18 @@ public class uMQTT {
         }
         mUnsentPublishes.put(publish.getPacketId(), publish);
         if (mConnectedToBroker) {
-            Timber.v("Sending PUBLISH packet to %s: %s (packet id: %d)",
-                    publish.getTopic(), publish.getMessage(), publish.getPacketId());
-            Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
-            i.setAction(ACTION_PUBLISH);
-            i.putExtra(EXTRA_PACKET_ID, publish.getPacketId());
-            mApplicationContext.startService(i);
+            sendPublish(publish);
         }
         publish.transactionAdvance();
+    }
+
+    void sendPublish(uMQTTPublish publish) {
+        Timber.v("Sending PUBLISH packet to %s: %s (packet id: %d)",
+                publish.getTopic(), publish.getMessage(), publish.getPacketId());
+        Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
+        i.setAction(ACTION_PUBLISH);
+        i.putExtra(EXTRA_PACKET_ID, publish.getPacketId());
+        mApplicationContext.startService(i);
     }
 
     void sentQoS0Packet(short packetId) {
