@@ -175,7 +175,7 @@ public class uMQTTInputService {
             case uMQTTFrame.MQ_PUBACK:
             case uMQTTFrame.MQ_PUBREC:
             case uMQTTFrame.MQ_PUBCOMP:
-                handleOutboundQoS(type, message);
+                handleOutboundQoS(message);
                 break;
             case uMQTTFrame.MQ_PUBLISH:
             case uMQTTFrame.MQ_PUBREL:
@@ -188,12 +188,12 @@ public class uMQTTInputService {
     }
 
     private void handleUnsuback(byte msb, byte lsb) {
-        short packetId = (short)(msb * 0xff + lsb);
+        short packetId = uMQTTFrame.fetchBytes(msb, lsb);
         uMQTT.getInstance().removeSubscriptions(packetId);
     }
 
-    private void handleOutboundQoS(int type, byte[] message) {
-        short packetId = (short)(message[2] * 0xff + message[3]);
+    private void handleOutboundQoS(byte[] message) {
+        short packetId = uMQTTFrame.fetchBytes(message[2], message[3]);
         uMQTT.getInstance().advanceOutboundTransaction(packetId);
     }
 
@@ -206,7 +206,7 @@ public class uMQTTInputService {
             );
         }
         else {
-            short packetId = (short)(message[2] * 0xff + message[3]);
+            short packetId = uMQTTFrame.fetchBytes(message[2], message[3]);
             uMQTT.getInstance().advanceInboundTransaction(packetId);
         }
     }

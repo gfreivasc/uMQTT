@@ -465,6 +465,6 @@ public class uMQTTFrame {
     }
 
     static short fetchBytes(byte msb, byte lsb) {
-        return (short) ((msb << 8) | (lsb & 0b0000000011111111));
+        return (short) (((msb << 8) | (lsb & 0xff)) & 0xffff);
     }
 }
