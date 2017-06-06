@@ -42,7 +42,6 @@ public class uMQTT {
 
     private static uMQTT mInstance;
     private static Context mApplicationContext;
-    private uMQTTInputService mInputService;
     private FirebaseJobDispatcher mJobDispatcher;
     private JobManager mJobManager;
     private Socket mSocket;
@@ -186,12 +185,11 @@ public class uMQTT {
     }
 
     private void startInputListener(InputStream inputStream) {
-        mInputService = uMQTTInputService.getInstance();
-        mInputService.start(inputStream);
+        uMQTTInputService.getInstance().start(inputStream);
     }
 
     public void stopInputListener() {
-        mInputService.stop();
+        uMQTTInputService.getInstance().stop();
     }
 
     public void sendDisconnect() {
