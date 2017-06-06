@@ -19,7 +19,7 @@ public class NetworkJobService extends Job {
     private static final int INITIAL_BACKOFF = 500;
 
     public NetworkJobService() {
-        super(new Params(PRIORITY).requireNetwork());
+        super(new Params(PRIORITY).requireNetwork().singleInstanceBy("OPEN_SOCKET_JOB"));
     }
 
     @Override

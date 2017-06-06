@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
-import android.util.Log;
 
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.config.Configuration;
@@ -24,14 +23,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import io.realm.Realm;
-import io.realm.RealmResults;
-import re.usto.message.controller.MessageController;
-import re.usto.net.UMQTTController;
 import re.usto.umqtt.utils.NetworkJobService;
 import re.usto.umqtt.utils.PingService;
-import re.usto.utils.Group;
-import re.usto.utils.MaluhiaApplication;
 import timber.log.Timber;
 
 /**
@@ -192,7 +185,7 @@ public class uMQTT {
         uMQTTInputService.getInstance().stop();
     }
 
-    public void sendDisconnect() {
+    public void sendDisconnectAndCloseSocket() {
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
         i.setAction(ACTION_DISCONNECT);
         mApplicationContext.startService(i);
@@ -296,14 +289,14 @@ public class uMQTT {
         }
         mUnsentPublishes.put(publish.getPacketId(), publish);
         if (mConnectedToBroker) {
+            Timber.v("Sending PUBLISH packet to %s: %s (packet id: %d)",
+                    publish.getTopic(), publish.getMessage(), publish.getPacketId());
             Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
             i.setAction(ACTION_PUBLISH);
             i.putExtra(EXTRA_PACKET_ID, publish.getPacketId());
             mApplicationContext.startService(i);
         }
         publish.transactionAdvance();
-        Timber.v("Sending PUBLISH packet to %s: %s (packet id: %d)",
-                publish.getTopic(), publish.getMessage(), publish.getPacketId());
     }
 
     void sentQoS0Packet(short packetId) {
@@ -469,7 +462,9 @@ public class uMQTT {
         mJobDispatcher.cancelAll();
         mJobManager.stop();
         stopInputListener();
-        sendDisconnect();
+        if (mSocket != null && !mSocket.isClosed()) {
+            sendDisconnectAndCloseSocket();
+        }
         mConnectedToBroker = false;
     }
 

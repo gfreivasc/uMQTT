@@ -151,8 +151,10 @@ public class uMQTTInputService {
                     readOffset += readSize;
                 }
                 else {
-                    onMessageReceived(excerpt, readOffset + readStepSize);
                     setListenerAwaiting();
+                    if (readSize == readStepSize) {
+                        onMessageReceived(excerpt, readOffset + readStepSize);
+                    }
                 }
                 break;
         }
