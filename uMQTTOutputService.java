@@ -273,8 +273,12 @@ public class uMQTTOutputService extends IntentService {
                 return;
             }
 
-            mController.getSocket().getOutputStream().write(frame.getPacket());
-            Timber.v("Sending PINGREQ");
+            if(mController != null && mController.getSocket().isConnected()) {
+                mController.getSocket().getOutputStream().write(frame.getPacket());
+                Timber.v("Sending PINGREQ");
+            }else{
+                Timber.v("NOT Sending PINGREQ");
+            }
         }
         catch (IOException e) {
             Timber.e(e, "Could not send Ping to server");
