@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.support.annotation.Nullable;
 
 import java.io.IOException;
+import java.net.Socket;
 
 import timber.log.Timber;
 
@@ -208,8 +209,11 @@ public class uMQTTOutputService extends IntentService {
                 mController.addToUnhandledUnsubscriptions(frame.getPacketId(), new String[]{topic});
             else
                 mController.setSubscriptionsAsAwaiting(frame.getPacketId(), new String[]{topic});
-            mController.getSocket().getOutputStream().write(frame.getPacket());
-            Timber.v("%subscribing to topic %s", unsubscribe ? "Un" : "S", topic);
+
+            if(mController.getSocket().isConnected()) {
+                mController.getSocket().getOutputStream().write(frame.getPacket());
+                Timber.v("%subscribing to topic %s", unsubscribe ? "Un" : "S", topic);
+            }
         }
         catch (IOException e) {
             Timber.e(e, "Could not send subscription packet for topic %s", topic);

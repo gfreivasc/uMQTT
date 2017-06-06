@@ -119,7 +119,11 @@ public class uMQTTPublish {
                     pubState = PUB_COMPLETED;
                     if (!inbound) publisher.completePublish(getPacketId());
                     else uMQTT.getInstance().publishCallback(topic, message);
-                } else pubState = PUB_RECEIVED;
+                } else {
+                    pubState = PUB_RECEIVED;
+                    if (!inbound) publisher.completePublish(getPacketId());
+                    else uMQTT.getInstance().publishCallback(topic, message);
+                }
                 break;
             case PUB_RECEIVED:
             case PUB_RELEASED:

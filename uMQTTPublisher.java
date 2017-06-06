@@ -66,7 +66,8 @@ public abstract class uMQTTPublisher {
         else {
             packetId = publish.getPacketId();
             mPublishJobs.add(buildJobTag(packetId));
-            uMQTT.getInstance().addPublish(publish);
+            mPublishManager.addJobInBackground(new PublishJob(packetId));
+            //uMQTT.getInstance().addPublish(publish);
         }
         return packetId;
     }
