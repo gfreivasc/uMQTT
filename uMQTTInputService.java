@@ -72,7 +72,8 @@ public class uMQTTInputService {
             } catch (IOException e) {
                 if (mRun) {
                     stop();
-                    uMQTT.getInstance().scheduleSocketOpening();
+                    uMQTT.getInstance().close();
+                    uMQTT.getInstance().open();
                 }
                 else stop();
             }
