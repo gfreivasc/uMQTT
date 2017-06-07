@@ -273,7 +273,7 @@ public class uMQTTOutputService extends IntentService {
                 return;
             }
 
-            if(mController != null && mController.getSocket().isConnected()) {
+            if(mController != null && mController.getSocket() != null && mController.getSocket().isConnected()) {
                 mController.getSocket().getOutputStream().write(frame.getPacket());
                 Timber.v("Sending PINGREQ");
             }else{
