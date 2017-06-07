@@ -19,9 +19,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
 
 import re.usto.umqtt.utils.NetworkJobService;
 import re.usto.umqtt.utils.PingService;
@@ -46,6 +51,7 @@ public class uMQTT {
     private ArrayList<uMQTTSubscription> mSubscriptionFrames;
     private boolean mConnectedToBroker = false;
     private uMQTTConfiguration mConfiguration;
+    private Lock mPublishLock;
 
     private static final String JS_PING_JOB = "pingJob";
 
@@ -90,6 +96,7 @@ public class uMQTT {
                 new Configuration.Builder(context).build()
         );
         mConfiguration = configuration;
+
         scheduleSocketOpening();
     }
 
@@ -166,10 +173,9 @@ public class uMQTT {
         }
 
         if (mUnsentPublishes != null) {
-            Iterator<Map.Entry<Short, uMQTTPublish>> iterator =
-                    mUnsentPublishes.entrySet().iterator();
-            while (iterator.hasNext()) {
-                sendPublish(iterator.next().getValue());
+            Collection<uMQTTPublish> publishes = mUnsentPublishes.values();
+            for (uMQTTPublish publish : publishes) {
+                sendPublish(publish);
             }
         }
 
@@ -284,6 +290,9 @@ public class uMQTT {
     }
 
     void addPublish(uMQTTPublish publish) {
+        if (publish.getQosLevel() == 0 && !mConnectedToBroker)
+            return;
+        
         if (mUnsentPublishes == null) {
             mUnsentPublishes = new HashMap<>();
         }
