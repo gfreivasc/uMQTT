@@ -290,5 +290,10 @@ public class uMQTTOutputService extends IntentService {
                 Timber.wtf(ex);
             }
         }
+        catch (NullPointerException e) {
+            Timber.w("Trying to send Ping before connection is established");
+            mController.close();
+            mController.open();
+        }
     }
 }
