@@ -197,7 +197,7 @@ public class uMQTT {
         mApplicationContext.startService(i);
     }
 
-    public void addSubscription(String topic, byte qosLevel,
+    public synchronized void addSubscription(String topic, byte qosLevel,
                                 uMQTTSubscription.OnReceivedPublish onReceivedPublish) {
         if (mSubscriptions == null) mSubscriptions = new HashMap<>();
         uMQTTSubscription subscription = new uMQTTSubscription(topic, qosLevel, onReceivedPublish);
@@ -215,7 +215,7 @@ public class uMQTT {
         }
     }
 
-    public void addSubscriptions(String[] topics, byte[] qosLevels,
+    public synchronized void addSubscriptions(String[] topics, byte[] qosLevels,
                                  uMQTTSubscription.OnReceivedPublish onReceivedPublish) {
         if (mSubscriptions == null) mSubscriptions = new HashMap<>();
         if (topics.length != qosLevels.length)
@@ -251,7 +251,7 @@ public class uMQTT {
         }
     }
 
-    void setResponseToAwaitingSubscriptions(short packetId, byte[] grantedQoSLevels) {
+    synchronized void setResponseToAwaitingSubscriptions(short packetId, byte[] grantedQoSLevels) {
         int i = 0;
         for (Iterator<uMQTTSubscription> it = mSubscriptionsAwaitingResponse.iterator();
              it.hasNext();) {
@@ -292,7 +292,7 @@ public class uMQTT {
     void addPublish(uMQTTPublish publish) {
         if (publish.getQosLevel() == 0 && !mConnectedToBroker)
             return;
-        
+
         if (mUnsentPublishes == null) {
             mUnsentPublishes = new HashMap<>();
         }

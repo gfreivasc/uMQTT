@@ -94,7 +94,7 @@ public class uMQTTOutputService extends IntentService {
                 mController.getSocket().getOutputStream().write(packet);
             }
         }
-        catch (IOException e) {
+        catch (Throwable e) {
             Timber.e(e, "Could not send publish to broker.");
             mController.close();
             mController.open();
@@ -115,7 +115,7 @@ public class uMQTTOutputService extends IntentService {
             }
             mController.getSocket().getOutputStream().write(frame.getPacket());
         }
-        catch (IOException e) {
+        catch (Throwable e) {
             Timber.e(e, "Could not handle publish transaction with broker");
             mController.close();
             mController.open();
@@ -143,15 +143,10 @@ public class uMQTTOutputService extends IntentService {
             mController.getSocket().getOutputStream().write(frame.getPacket());
             Timber.v("Sent connect packet to broker.");
         }
-        catch (IOException e) {
+        catch (Throwable e) {
             Timber.e(e, "Failed to send packet to broker.");
-            try {
-                mController.getSocket().close();
-                mController.scheduleSocketOpening();
-            }
-            catch (IOException ex) {
-                Timber.wtf(ex);
-            }
+            mController.close();
+            mController.open();
         }
     }
 
@@ -169,13 +164,8 @@ public class uMQTTOutputService extends IntentService {
             mController.getSocket().getOutputStream().write(frame.getPacket());
             mController.getSocket().close();
         }
-        catch (IOException e) {
-            try {
-                mController.getSocket().close();
-            }
-            catch (IOException ex) {
-                Timber.wtf(ex);
-            }
+        catch (Throwable e) {
+            mController.close();
         }
     }
 
@@ -205,7 +195,7 @@ public class uMQTTOutputService extends IntentService {
                 Timber.v("%subscribing to topic %s", unsubscribe ? "Un" : "S", topic);
             }
         }
-        catch (IOException e) {
+        catch (Throwable e) {
             Timber.e(e, "Could not send subscription packet for topic %s", topic);
             mController.close();
             mController.open();
@@ -235,7 +225,7 @@ public class uMQTTOutputService extends IntentService {
             mController.getSocket().getOutputStream().write(frame.getPacket());
             Timber.v("Subscribing to %d topics", topics.length);
         }
-        catch (IOException e) {
+        catch (Throwable e) {
             Timber.e(e, "Could not send subscription packets for %d topics", topics.length);
             mController.close();
             mController.open();
@@ -260,13 +250,8 @@ public class uMQTTOutputService extends IntentService {
                 Timber.v("NOT Sending PINGREQ");
             }
         }
-        catch (IOException e) {
+        catch (Throwable e) {
             Timber.e(e, "Could not send Ping to server");
-            mController.close();
-            mController.open();
-        }
-        catch (NullPointerException e) {
-            Timber.w("Trying to send Ping before connection is established");
             mController.close();
             mController.open();
         }
