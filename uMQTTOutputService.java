@@ -4,9 +4,6 @@ import android.app.IntentService;
 import android.content.Intent;
 import android.support.annotation.Nullable;
 
-import java.io.IOException;
-import java.net.Socket;
-
 import timber.log.Timber;
 
 /**
@@ -87,11 +84,14 @@ public class uMQTTOutputService extends IntentService {
         //}
 
         try {
-            byte[] packet = mController.getPacket(packetId);
-            if(packet != null) {
+            uMQTTPublish publish = mController.getPublish(packetId);
+            if(publish != null) {
+                byte[] packet = publish.getPacket();
+                mController.getSocket().getOutputStream().write(packet);
                 if (((packet[0] >> 1) & 0b11) == 0b00)
                     mController.sentQoS0Packet(packetId);
-                mController.getSocket().getOutputStream().write(packet);
+                else
+                    mController.sentPacket(packetId);
             }
         }
         catch (Throwable e) {

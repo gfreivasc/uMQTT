@@ -459,6 +459,14 @@ public class uMQTTFrame {
         return this.packet;
     }
 
+    public void setPacketAsDuplicate() {
+        fixedHeader |= 1 << 3;
+    }
+
+    public boolean isPacketDuplicate() {
+        return (fixedHeader & (1 << 3)) == 0;
+    }
+
     @MQPacketType
     static int readPacketType(byte firstByte) {
         return (firstByte >> 4);

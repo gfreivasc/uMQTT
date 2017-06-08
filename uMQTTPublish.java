@@ -30,6 +30,11 @@ public class uMQTTPublish {
             PUB_RELEASED = 3,
             PUB_COMPLETED = 4;
 
+    void setDuplicate() {
+        if (this.frame != null)
+            this.frame.setPacketAsDuplicate();
+    }
+
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({PUB_PUBLISHING, PUB_PUBLISHED, PUB_RECEIVED, PUB_RELEASED, PUB_COMPLETED})
     @interface MQPubStatus {

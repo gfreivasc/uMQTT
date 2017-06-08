@@ -323,9 +323,9 @@ public class uMQTT {
             mUnsentPublishes.remove(packetId);
     }
 
-    byte[] getPacket(short packetId) {
+    uMQTTPublish getPublish(short packetId) {
         if (mUnsentPublishes.get(packetId) != null){
-            return mUnsentPublishes.get(packetId).getPacket();
+            return mUnsentPublishes.get(packetId);
         }else{
             return null;
         }
@@ -503,5 +503,9 @@ public class uMQTT {
         SharedPreferences.Editor editor = sp.edit();
         editor.putInt(PREF_PACKET_ID, packetId & 0xffff);
         editor.commit();
+    }
+
+    public void sentPacket(short packetId) {
+        mUnsentPublishes.get(packetId).setDuplicate();
     }
 }
