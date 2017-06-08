@@ -43,8 +43,8 @@ public class uMQTTInputService {
     private @MQReadState
     int mReadState;
 
-    // Size = 16MB
-    private static final int INPUT_BUFFER_LENGTH = 16 * 1024 * 1024;
+    // Size = 4MB
+    private static final int INPUT_BUFFER_LENGTH = 4 * 1024 * 1024;
     private static byte[] buffer = new byte[INPUT_BUFFER_LENGTH];
 
     private uMQTTInputService() {
@@ -62,6 +62,8 @@ public class uMQTTInputService {
         public void run() {
             try {
                 while (mRun) {
+                    if ((readOffset + readStepSize) > INPUT_BUFFER_LENGTH)
+                        throw new IOException("Message buffer overflow, closing connection.");
                     int readSize = mInputStream.read(buffer, readOffset, readStepSize);
                     if (readSize > 0)
                         parseSocketInput(buffer, readSize);
