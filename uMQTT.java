@@ -22,7 +22,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -47,7 +49,7 @@ public class uMQTT {
     private HashMap<Short, String[]> mUnhandledUnsubscriptions;
     private HashMap<Short, uMQTTPublish> mUnsentPublishes;
     private HashMap<Short, uMQTTPublish> mUnhandledPublishes;
-    private ArrayList<uMQTTSubscription> mSubscriptionsAwaitingResponse;
+    private List<uMQTTSubscription> mSubscriptionsAwaitingResponse;
     private ArrayList<uMQTTSubscription> mSubscriptionFrames;
     private boolean mConnectedToBroker = false;
     private uMQTTConfiguration mConfiguration;
@@ -242,17 +244,21 @@ public class uMQTT {
 
     void setSubscriptionsAsAwaiting(short packetId, String[] topics) {
         if (mSubscriptionsAwaitingResponse == null)
-            mSubscriptionsAwaitingResponse = new ArrayList<>();
+            mSubscriptionsAwaitingResponse = new CopyOnWriteArrayList<>();
 
+        ArrayList<uMQTTSubscription> awaitingSubscriptions = new ArrayList<>();
         for (String topic : topics) {
             uMQTTSubscription subscription = mSubscriptions.get(topic);
             subscription.setRequestPacketId(packetId);
-            mSubscriptionsAwaitingResponse.add(subscription);
+            awaitingSubscriptions.add(subscription);
         }
+
+        mSubscriptionsAwaitingResponse.addAll(awaitingSubscriptions);
     }
 
     synchronized void setResponseToAwaitingSubscriptions(short packetId, byte[] grantedQoSLevels) {
         int i = 0;
+
         for (Iterator<uMQTTSubscription> it = mSubscriptionsAwaitingResponse.iterator();
              it.hasNext();) {
             uMQTTSubscription subscription = it.next();
@@ -260,7 +266,7 @@ public class uMQTT {
                 subscription.setGrantedQosLevel(grantedQoSLevels[i++]);
                 Timber.v("Confirmed subscription to topic %s with QoS %d",
                         subscription.getTopic(), subscription.getGrantedQoSLevel());
-                it.remove();
+                mSubscriptionsAwaitingResponse.remove(subscription);
             }
             else if (i != 0) break;
         }
