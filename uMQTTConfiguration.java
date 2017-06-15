@@ -8,6 +8,8 @@ public class uMQTTConfiguration {
 
     private String brokerIp;
     private String clientId;
+    private String username;
+    private String password;
     private int brokerPort;
 
     // Callback is called when we receive a connack from the broker
@@ -38,6 +40,16 @@ public class uMQTTConfiguration {
             return this;
         }
 
+        public Builder setUsername(String username) {
+            config.username = username;
+            return this;
+        }
+
+        public Builder setPassword(String password) {
+            config.password = password;
+            return this;
+        }
+
         public uMQTTConfiguration build() {
             return config;
         }
@@ -63,6 +75,10 @@ public class uMQTTConfiguration {
     String getBrokerIp() {
         return brokerIp;
     }
+
+    String getUsername() { return username; }
+
+    String getPassword() { return password; }
 
     int getBrokerPort() {
         return brokerPort;

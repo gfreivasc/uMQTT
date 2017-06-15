@@ -79,6 +79,8 @@ public class uMQTT {
             "re.usto.umqtt.FORWARD_PUBLISH";
 
     static final String EXTRA_CLIENT_ID = "extraClientId";
+    static final String EXTRA_USERNAME = "extraUsername";
+    static final String EXTRA_PASSWORD = "extraPassword";
     static final String EXTRA_TOPIC = "extraTopic";
     static final String EXTRA_TOPICS = "extraTopics";
     static final String EXTRA_TOPIC_QOS = "extraTopicQoS";
@@ -151,6 +153,12 @@ public class uMQTT {
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
         i.setAction(ACTION_CONNECT);
         i.putExtra(EXTRA_CLIENT_ID, mConfiguration.getClientId());
+        if (mConfiguration.getUsername() != null) {
+            i.putExtra(EXTRA_USERNAME, mConfiguration.getUsername());
+        }
+        if (mConfiguration.getPassword() != null) {
+            i.putExtra(EXTRA_PASSWORD, mConfiguration.getPassword());
+        }
         mApplicationContext.startService(i);
     }
 

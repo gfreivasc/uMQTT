@@ -29,7 +29,13 @@ public class uMQTTOutputService extends IntentService {
             case uMQTT.ACTION_CONNECT:
                 if (!intent.hasExtra(uMQTT.EXTRA_CLIENT_ID))
                     throw new UnsupportedOperationException("Missing client ID");
-                connect(intent.getStringExtra(uMQTT.EXTRA_CLIENT_ID));
+                String username = intent.hasExtra(uMQTT.EXTRA_USERNAME) ?
+                        intent.getStringExtra(uMQTT.EXTRA_USERNAME) : null;
+                String password = intent.hasExtra(uMQTT.EXTRA_PASSWORD) ?
+                        intent.getStringExtra(uMQTT.EXTRA_PASSWORD) : null;
+                connect(intent.getStringExtra(uMQTT.EXTRA_CLIENT_ID),
+                        username,
+                        password);
                 break;
             case uMQTT.ACTION_DISCONNECT:
                 disconnect();
@@ -122,24 +128,28 @@ public class uMQTTOutputService extends IntentService {
         }
     }
 
-    private void connect(String clientId) {
+    private void connect(String clientId, String username, String password) {
         uMQTTFrame frame;
         try {
             try {
-                frame = new uMQTTFrame.ConnectBuilder()
+                uMQTTFrame.ConnectBuilder builder = new uMQTTFrame.ConnectBuilder()
                         .setClientId(clientId)
                         .setWillFlag()
                         .setWillMessage("Disconnect")
                         .setWillTopic("a/b")
                         .setWillQoS(0b01)
-                        .setKeepAlive((short) uMQTT.DEFAULT_KEEP_ALIVE)
-                        .build();
+                        .setKeepAlive((short) uMQTT.DEFAULT_KEEP_ALIVE);
+
+                if (username != null) builder.setUsername(username);
+                if (password != null) builder.setPassword(password);
+                frame = builder.build();
             }
             catch (BrokenMQTTFrameException e) {
                 Timber.wtf(e);
                 return;
             }
 
+            Timber.d("Frame: ", frame.getPacket().toString());
             mController.getSocket().getOutputStream().write(frame.getPacket());
             Timber.v("Sent connect packet to broker.");
         }

@@ -328,11 +328,13 @@ public class uMQTTFrame {
         }
 
         public ConnectBuilder setUsername(String username) {
+            this.setUsernameFlag();
             this.username = frame.encodeString(username);
             return this;
         }
 
         public ConnectBuilder setPassword(String password) {
+            this.setPasswordFlag();
             this.password = frame.encodeString(password);
             return this;
         }
@@ -465,11 +467,6 @@ public class uMQTTFrame {
 
     public boolean isPacketDuplicate() {
         return (fixedHeader & (1 << 3)) == 0;
-    }
-
-    @MQPacketType
-    static int readPacketType(byte firstByte) {
-        return (firstByte >> 4);
     }
 
     static short fetchBytes(byte msb, byte lsb) {
