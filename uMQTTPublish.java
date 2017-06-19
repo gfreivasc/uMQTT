@@ -167,6 +167,8 @@ public class uMQTTPublish {
         return pubState;
     }
 
+    boolean isMessageTooLong() { return message.length() > 256; }
+
     boolean publishCompleted() {
         return pubState == PUB_COMPLETED;
     }

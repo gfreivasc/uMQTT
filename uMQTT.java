@@ -319,7 +319,9 @@ public class uMQTT {
 
     void sendPublish(uMQTTPublish publish) {
         Timber.v("Sending PUBLISH packet to %s: %s (packet id: %d)",
-                publish.getTopic(), publish.getMessage(), publish.getPacketId());
+                publish.getTopic(),
+                publish.isMessageTooLong() ? "--Constricted long message--" : publish.getMessage(),
+                publish.getPacketId());
         Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
         i.setAction(ACTION_PUBLISH);
         i.putExtra(EXTRA_PACKET_ID, publish.getPacketId());
