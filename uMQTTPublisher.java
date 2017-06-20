@@ -54,24 +54,30 @@ public abstract class uMQTTPublisher {
 
     public short publish(String message) {
         uMQTTPublish publish = new uMQTTPublish(topic, message, qosLevel, this);
+        publish(publish, publish.getPacketId());
+        return publish.getPacketId();
+    }
 
-        short packetId;
+    public short republish(String message, int packetId) {
+        uMQTTPublish publish = new uMQTTPublish(topic, message, qosLevel, this,
+                (short)(packetId & 0xffff));
+        publish(publish, publish.getPacketId());
+        return publish.getPacketId();
+    }
 
+    private void publish(uMQTTPublish publish, short packetId) {
         if (publish.getQosLevel() > 0) {
-            packetId = publish.getPacketId();
             mPublishes.put(publish.getPacketId(), publish);
             mPublishJobs.add(buildJobTag(packetId));
             mPublishManager.addJobInBackground(new PublishJob(packetId));
         }
         else {
-            packetId = publish.getPacketId();
             mPublishJobs.add(buildJobTag(packetId));
             uMQTT.getInstance().addPublish(publish);
         }
-        return packetId;
     }
 
-    public class PublishJob extends Job {
+    private class PublishJob extends Job {
 
         short mPacketId;
         private static final int PRIORITY = 1;

@@ -102,6 +102,7 @@ public class uMQTTFrame {
         private boolean mPayloadSet = false;
         private byte mQoSLevel;
         private byte[] mTopic = null;
+        private short mPacketId = 0;
 
         public PublishBuilder() {
             super(MQ_PUBLISH);
@@ -131,6 +132,11 @@ public class uMQTTFrame {
         public PublishBuilder setPayload(byte[] payload) {
             frame.payload = payload;
             mPayloadSet = true;
+            return this;
+        }
+
+        public PublishBuilder setPacketId(short packetId) {
+            mPacketId = packetId;
             return this;
         }
 
@@ -167,11 +173,17 @@ public class uMQTTFrame {
                     frame.variableHeader[i] = mTopic[i];
 
                 }
-                frame.setPacketId();
+
+                if (mPacketId == 0) {
+                    frame.setPacketId();
+                    mPacketId = frame.getPacketId();
+                }
+                else frame.setPacketId(mPacketId);
+
                 frame.variableHeader[frame.variableHeader.length - 2] =
-                        (byte)((frame.getPacketId() >> 8) & 0xff);
+                        (byte)((mPacketId >> 8) & 0xff);
                 frame.variableHeader[frame.variableHeader.length - 1] =
-                        (byte)(frame.getPacketId() & 0xff);
+                        (byte)(mPacketId & 0xff);
             }
             else {
                 frame.setPacketId();
@@ -424,6 +436,10 @@ public class uMQTTFrame {
 
         packetId = (short) (packetSequence.getAndIncrement() & 0xffff);
         uMQTT.getInstance().updateTopPacketId(packetId);
+    }
+
+    private void setPacketId(short packetId) {
+        this.packetId = packetId;
     }
 
     public short getPacketId() {

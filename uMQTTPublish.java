@@ -43,23 +43,32 @@ public class uMQTTPublish {
     private @MQPubStatus
     int pubState = PUB_PUBLISHING;
 
-    uMQTTPublish(String topic, String message, byte qosLevel, uMQTTPublisher publisher) {
+    uMQTTPublish(String topic, String message, byte qosLevel, uMQTTPublisher publisher,
+                 short packetId) {
         this.topic = topic;
         this.message = message;
         this.qosLevel = qosLevel;
 
         try {
-            frame = new uMQTTFrame.PublishBuilder()
+            uMQTTFrame.PublishBuilder builder = new uMQTTFrame.PublishBuilder()
                     .setTopic(topic)
                     .setPayload(message)
-                    .setQosLevel(qosLevel)
-                    .build();
+                    .setQosLevel(qosLevel);
+
+            if (packetId != 0) {
+                builder.setPacketId(packetId).setDup();
+            }
+            frame = builder.build();
         } catch (BrokenMQTTFrameException e) {
             Timber.e(e, "Packet missing information.");
         }
 
         this.publisher = publisher;
         pubState = PUB_PUBLISHING;
+    }
+
+    uMQTTPublish(String topic, String message, byte qosLevel, uMQTTPublisher publisher) {
+        this(topic, message, qosLevel, publisher, (short)0);
     }
 
     uMQTTPublish(byte[] packet) {
