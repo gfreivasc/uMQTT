@@ -24,19 +24,23 @@ public class uMQTTInputService {
 
     private static final int BYTES_FIXED_HEADER = 2;
     private static final int BYTES_SINGLE_STEP = 1;
+    private static final int BYTES_OVERFLOW_HANDLING = 1024;
     private static int readStepSize = BYTES_SINGLE_STEP;
     private static int remainingSize = 0;
     private static int readOffset = 0;
     private static int multiplier = 1;
+    private static long overflow = 0L;
     private boolean mWaitingConnack = true;
 
     private static final int
             RS_AWAITING = 0,
             RS_FETCHING_REMAINING_SIZE = 1,
-            RS_FETCHING_FULL_PACKET = 2;
+            RS_FETCHING_FULL_PACKET = 2,
+            RS_HANDLING_OVERFLOW = 3;
 
     @Retention(RetentionPolicy.SOURCE)
-    @IntDef({RS_AWAITING, RS_FETCHING_REMAINING_SIZE, RS_FETCHING_FULL_PACKET})
+    @IntDef({RS_AWAITING, RS_FETCHING_REMAINING_SIZE,
+            RS_FETCHING_FULL_PACKET, RS_HANDLING_OVERFLOW})
     private @interface MQReadState {
     }
 
@@ -62,8 +66,15 @@ public class uMQTTInputService {
         public void run() {
             try {
                 while (mRun) {
-                    if ((readOffset + readStepSize) > INPUT_BUFFER_LENGTH)
-                        throw new IOException("Message buffer overflow, closing connection.");
+                    if ((readOffset + readStepSize) > INPUT_BUFFER_LENGTH) {
+                        Timber.w("Ignoring overflowing message (%d bytes)", readStepSize);
+                        if (((buffer[0] >> 4) & 0xf) == uMQTTFrame.MQ_PUBLISH)
+                            setListenerOverflowed();
+                        else {
+                            skipMessageOverflow();
+                            setListenerAwaiting();
+                        }
+                    }
                     int readSize = mInputStream.read(buffer, readOffset, readStepSize);
                     if (readSize > 0)
                         parseSocketInput(buffer, readSize);
@@ -71,7 +82,8 @@ public class uMQTTInputService {
                         throw new IOException("Connection closed by broker.");
                     }
                 }
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 if (mRun) {
                     stop();
                     uMQTT.getInstance().close();
@@ -119,9 +131,18 @@ public class uMQTTInputService {
         remainingSize = 0;
     }
 
+    @WorkerThread
     private synchronized void setListenerFetchingFullPacket() {
         mReadState = RS_FETCHING_FULL_PACKET;
         readStepSize = remainingSize;
+    }
+
+    @WorkerThread
+    private synchronized void setListenerOverflowed() {
+        mReadState = RS_HANDLING_OVERFLOW;
+        overflow = readStepSize;
+        // 1kb, far less then buffer size, probably enough to get packetId
+        readStepSize = BYTES_OVERFLOW_HANDLING;
     }
 
     @WorkerThread
@@ -156,6 +177,18 @@ public class uMQTTInputService {
                 else {
                     if (readSize == readStepSize) {
                         onMessageReceived(excerpt, readOffset + readStepSize);
+                    }
+                    setListenerAwaiting();
+                }
+                break;
+            case RS_HANDLING_OVERFLOW:
+                if (readSize < readStepSize) {
+                    readStepSize -= readSize;
+                    readOffset += readSize;
+                }
+                else {
+                    if (readSize == readStepSize) {
+                        handleOverflowedPublish(excerpt);
                     }
                     setListenerAwaiting();
                 }
@@ -249,11 +282,46 @@ public class uMQTTInputService {
     }
 
     private void handleSuback(byte[] message, int size) {
-        short packetId = (short)uMQTTFrame.fetchBytes(message[2], message[3]);
+        short packetId = uMQTTFrame.fetchBytes(message[2], message[3]);
 
         uMQTT.getInstance()
                 .setResponseToAwaitingSubscriptions(
                         packetId,
                         Arrays.copyOfRange(message, 4, size));
+    }
+
+    private void handleOverflowedPublish(byte[] message) {
+        // This is intended, just for us to skip the "remaining length" part
+        int i = 1;
+        while((message[i] & 0x80) != 0) ++i;
+
+        // i is pointing to the last digit of the "remaining length" part, skip it.
+        i += 1;
+
+        // Now lets see the size of the topic name and skip this much
+        i += (uMQTTFrame.fetchBytes(message[i], message[i + 1]) & 0xffff) + 2;
+
+        // Now we can see the packet id
+        short packetId = uMQTTFrame.fetchBytes(message[i], message[i + 1]);
+
+        // Finally, we send a puback, so the broker will stop sending this publish, and skip the
+        // full message
+        uMQTT.getInstance().sendPuback(packetId);
+        overflow -= BYTES_OVERFLOW_HANDLING;
+        skipMessageOverflow();
+    }
+
+    private void skipMessageOverflow() {
+        try {
+            long skipped = 0;
+            while (skipped < overflow) {
+                skipped += mInputStream.skip(overflow - skipped);
+            }
+        }
+        catch (IOException ex) {
+            stop();
+            uMQTT.getInstance().close();
+            uMQTT.getInstance().open();
+        }
     }
 }

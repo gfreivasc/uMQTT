@@ -515,7 +515,15 @@ public class uMQTT {
         editor.commit();
     }
 
-    public void sentPacket(short packetId) {
+    void sendPuback(short packetId) {
+        Intent i = new Intent(mApplicationContext, uMQTTOutputService.class);
+        i.setAction(ACTION_FORWARD_PUBLISH);
+        i.putExtra(EXTRA_PACKET_ID, packetId);
+        i.putExtra(EXTRA_FRAME_TYPE, uMQTTFrame.MQ_PUBACK);
+        mApplicationContext.startService(i);
+    }
+
+    void sentPacket(short packetId) {
         mUnsentPublishes.get(packetId).setDuplicate();
     }
 }
