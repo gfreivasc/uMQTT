@@ -402,6 +402,15 @@ public class uMQTT {
         }
     }
 
+    public interface OnUnsubscribeListener {
+        void onUnsubscribeSuccessful(String[] topics);
+    }
+    private OnUnsubscribeListener mOnUnsubscribeListener;
+
+    public void setOnUnsubscribeListener(OnUnsubscribeListener onUnsubscribeListener) {
+        mOnUnsubscribeListener = onUnsubscribeListener;
+    }
+
     public void unsubscribeFromTopic(String topic) {
         if (!mSubscriptions.containsKey(topic)) {
             Timber.w("There's no subscription to topic %s", topic);
@@ -460,9 +469,10 @@ public class uMQTT {
     void removeSubscriptions(short packetId) {
         String[] topics = mUnhandledUnsubscriptions.get(packetId);
 
-        if (topics != null)
-            for (String topic : topics)
-                mSubscriptions.remove(topic);
+        if (topics != null) {
+            for (String topic : topics) mSubscriptions.remove(topic);
+            mOnUnsubscribeListener.onUnsubscribeSuccessful(topics);
+        }
 
         mUnhandledUnsubscriptions.remove(packetId);
     }
