@@ -467,14 +467,16 @@ public class uMQTT {
     }
 
     void removeSubscriptions(short packetId) {
-        String[] topics = mUnhandledUnsubscriptions.get(packetId);
+        if(mUnhandledUnsubscriptions != null) {
+            String[] topics = mUnhandledUnsubscriptions.get(packetId);
 
-        if (topics != null) {
-            for (String topic : topics) mSubscriptions.remove(topic);
-            mOnUnsubscribeListener.onUnsubscribeSuccessful(topics);
+            if (topics != null) {
+                for (String topic : topics) mSubscriptions.remove(topic);
+                mOnUnsubscribeListener.onUnsubscribeSuccessful(topics);
+            }
+
+            mUnhandledUnsubscriptions.remove(packetId);
         }
-
-        mUnhandledUnsubscriptions.remove(packetId);
     }
 
     void publishCallback(String topic, String message) {
